@@ -15,7 +15,9 @@ conda install -c bioconda abnumber
 from abnumber import Chain
 
 chain = Chain.from_str('ELVMTQSPSSLSASVGDRVNIACRASQGISSALAWYQQKPGKAPRLLIYDASNLESGVPSRFSGSGSGTDFTLTISSLQPEDFAIYYCQQFNSYPLTFGGGTKVEIKRTV')
-print(chain)
+print(chain.format())
+#    ELVMTQSPSSLSASVGDRVNIACRASQGISSALAWYQQKPGKAPRLLIYDASNLESGVPSRFSGSGSGTDFTLTISSLQPEDFAIYYCQQFNSYPLTFGGGTKVEIK
+#                          ^^^^^^                 ^^^                                    ^^^^^^^^^          
 ```
 
 ## Credits
