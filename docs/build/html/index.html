@@ -1,0 +1,177 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to AbNumber’s documentation! &#8212; AbNumber 0.1.2 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="welcome-to-abnumber-s-documentation">
+<h1>Welcome to AbNumber’s documentation!<a class="headerlink" href="#welcome-to-abnumber-s-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</div>
+<div class="section" id="module-abnumber">
+<span id="api"></span><h1>API<a class="headerlink" href="#module-abnumber" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="abnumber.Chain">
+<em class="property">class </em><code class="sig-prename descclassname">abnumber.</code><code class="sig-name descname">Chain</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sequence</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">scheme</span><span class="o">=</span><span class="default_value">'imgt'</span></em>, <em class="sig-param"><span class="n">allowed_species</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aa_dict</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">chain_type</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Structure storing an aligned antibody chain using a chosen antibody numbering scheme</p>
+<p>Use <cite>Chain(‘EVQLQV…’)</cite> to create a Chain from an unaligned amino acid sequence</p>
+<dl class="py method">
+<dt id="abnumber.Chain.align">
+<code class="sig-name descname">align</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">others</span></em><span class="sig-paren">)</span> &#x2192; abnumber.chain.Alignment<a class="headerlink" href="#abnumber.Chain.align" title="Permalink to this definition">¶</a></dt>
+<dd><p>Align this chain to other chains by using their existing numbering
+:param others: Chains to align
+:return: Alignment object</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.clone">
+<code class="sig-name descname">clone</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">replace_seq</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.clone" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a copy of this chain, optionally with a replacement sequence that is placed into the same numbering
+:param replace_seq: Optional replacement sequence, needs to be the same length
+:return: new Chain object</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.graft_cdrs_onto">
+<code class="sig-name descname">graft_cdrs_onto</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n">abnumber.chain.Chain</span></em>, <em class="sig-param"><span class="n">name</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; abnumber.chain.Chain<a class="headerlink" href="#abnumber.Chain.graft_cdrs_onto" title="Permalink to this definition">¶</a></dt>
+<dd><p>Graft CDRs from this Chain onto another chain
+:param other: Chain to graft CDRs into
+:param name: Name of new Chain
+:return: Chain with CDRs grafted from this chain and frameworks from the given chain</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.positions">
+<em class="property">property </em><code class="sig-name descname">positions</code><a class="headerlink" href="#abnumber.Chain.positions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get dictionary of Position -&gt; Amino acid
+:return: dictionary of Position -&gt; Amino acid</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.regions">
+<em class="property">property </em><code class="sig-name descname">regions</code><a class="headerlink" href="#abnumber.Chain.regions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get dictionary of region dictionaries (Position -&gt; Amino acid)
+:return: Dictionary of Region name -&gt; dictionary of (Position -&gt; Amino acid)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.seq">
+<em class="property">property </em><code class="sig-name descname">seq</code><a class="headerlink" href="#abnumber.Chain.seq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get unaligned string representation of the variable chain sequence
+:return: Unaligned string representation of the variable chain sequence</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="abnumber.Alignment">
+<em class="property">class </em><code class="sig-prename descclassname">abnumber.</code><code class="sig-name descname">Alignment</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">positions</span></em>, <em class="sig-param"><span class="n">residues</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Alignment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt id="abnumber.Position">
+<em class="property">class </em><code class="sig-prename descclassname">abnumber.</code><code class="sig-name descname">Position</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">chain_type</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">number</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">letter</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">scheme</span><span class="p">:</span> <span class="n">str</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Position" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">AbNumber</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, David Prihoda.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.2.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

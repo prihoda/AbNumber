@@ -4,7 +4,7 @@ from abnumber import Chain
 def test_chain_from_str():
     var = 'ELVMTQSPSSLSASVGDRVNIACRASQGISSALAWYQQKPGKAPRLLIYDASNLESGVPSRFSGSGSGTDFTLTISSLQPEDFAIYYCQQFNSYPLTFGGGTKVEIK'
     tail = 'RTV'
-    chain = Chain.from_str(var + tail)
+    chain = Chain(var + tail)
     assert chain.seq == var
 
     expected_format = '''
