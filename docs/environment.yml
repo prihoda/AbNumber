@@ -1,2 +1,2 @@
 dependencies:
-  - anarci >=2020.04.23
+  - bioconda::anarci >=2020.04.23
