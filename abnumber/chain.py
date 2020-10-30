@@ -1,6 +1,13 @@
 from collections import OrderedDict
 from Bio.SubsMat import MatrixInfo
-from anarci.anarci import anarci
+import sys
+try:
+    from anarci.anarci import anarci
+except ImportError:
+    # Only print the error without failing - required to import
+    print('ANARCI module not available. Please install it separately or install AbNumber through Bioconda')
+    print('See: https://abnumber.readthedocs.io/')
+    sys.exit(1)
 from termcolor import colored as colored_fn
 from Bio.Seq import Seq
 
