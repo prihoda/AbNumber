@@ -21,10 +21,6 @@ project = 'AbNumber'
 copyright = '2020, David Prihoda'
 author = 'David Prihoda'
 
-# The full version, including alpha/beta/rc tags
-release = '0.1.2'
-
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
