@@ -1,6 +1,4 @@
 from collections import OrderedDict
-from typing import Union
-
 from Bio.SubsMat import MatrixInfo
 from anarci.anarci import anarci
 from termcolor import colored as colored_fn
