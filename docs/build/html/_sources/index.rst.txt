@@ -10,27 +10,39 @@ Welcome to AbNumber's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
-
-API
-===
-
 .. automodule:: abnumber
    :members:
+
+Getting Started
+===============
+
+1) Set up Bioconda
+
+TODO
+
+2) Install AbNumber using Bioconda:
+
+TODO
+
+Examples
+========
+
+TODO
+
+Chain
+=====
 
 .. autoclass:: Chain
    :members:
 
+Alignment
+=========
+
 .. autoclass:: Alignment
    :members:
+
+Position
+========
 
 .. autoclass:: Position   
    :members:

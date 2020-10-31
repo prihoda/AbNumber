@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Welcome to AbNumber’s documentation! &mdash; AbNumber 0.1.2 documentation</title>
+  <title>Welcome to AbNumber’s documentation! &mdash; AbNumber  documentation</title>
   
 
   
@@ -83,8 +83,11 @@
               <!-- Local TOC -->
               <div class="local-toc"><ul>
 <li><a class="reference internal" href="#">Welcome to AbNumber’s documentation!</a></li>
-<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
-<li><a class="reference internal" href="#module-abnumber">API</a></li>
+<li><a class="reference internal" href="#getting-started">Getting Started</a></li>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+<li><a class="reference internal" href="#chain">Chain</a></li>
+<li><a class="reference internal" href="#alignment">Alignment</a></li>
+<li><a class="reference internal" href="#position">Position</a></li>
 </ul>
 </div>
             
@@ -154,28 +157,115 @@
 <h1>Welcome to AbNumber’s documentation!<a class="headerlink" href="#welcome-to-abnumber-s-documentation" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 </div>
+<span class="target" id="module-abnumber"></span></div>
+<div class="section" id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
+<ol class="arabic simple">
+<li><p>Set up Bioconda</p></li>
+</ol>
+<p>TODO</p>
+<ol class="arabic simple" start="2">
+<li><p>Install AbNumber using Bioconda:</p></li>
+</ol>
+<p>TODO</p>
 </div>
-<div class="section" id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
-<ul class="simple">
-<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
-<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
-<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
-</ul>
+<div class="section" id="examples">
+<h1>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h1>
+<p>TODO</p>
 </div>
-<div class="section" id="module-abnumber">
-<span id="api"></span><h1>API<a class="headerlink" href="#module-abnumber" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="chain">
+<h1>Chain<a class="headerlink" href="#chain" title="Permalink to this headline">¶</a></h1>
 <dl class="py class">
 <dt id="abnumber.Chain">
-<em class="property">class </em><code class="sig-prename descclassname">abnumber.</code><code class="sig-name descname">Chain</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sequence</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">scheme</span><span class="o">=</span><span class="default_value">'imgt'</span></em>, <em class="sig-param"><span class="n">allowed_species</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aa_dict</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">chain_type</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain" title="Permalink to this definition">¶</a></dt>
-<dd><p>Structure storing an aligned antibody chain using a chosen antibody numbering scheme</p>
-<p>Use <cite>Chain(‘EVQLQV…’)</cite> to create a Chain from an unaligned amino acid sequence</p>
+<em class="property">class </em><code class="sig-prename descclassname">abnumber.</code><code class="sig-name descname">Chain</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sequence</span></em>, <em class="sig-param"><span class="n">scheme</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">allowed_species</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aa_dict</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">chain_type</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">tail</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Antibody chain aligned to a chosen antibody numbering scheme</p>
+<dl class="field-list simple">
+<dt class="field-odd">Example</dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">abnumber</span> <span class="kn">import</span> <span class="n">Chain</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seq</span> <span class="o">=</span> <span class="s1">&#39;QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSSAKTTAPSVYPLA&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="s1">&#39;imgt&#39;</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">format</span><span class="p">())</span>
+<span class="go">QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS</span>
+<span class="go">                         ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="o">.</span><span class="n">chain_type</span>
+<span class="go">&#39;H&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="o">.</span><span class="n">seq</span>
+<span class="go">&#39;QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="o">.</span><span class="n">tail</span>
+<span class="go">&#39;AKTTAPSVYPLA&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="o">.</span><span class="n">cdr3_seq</span>
+<span class="go">&#39;ARYYDDHYCLDY&#39;</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sequence</strong> – Unaligned string sequence</p></li>
+<li><p><strong>name</strong> – Optional sequence identifier</p></li>
+<li><p><strong>scheme</strong> – Numbering scheme: FIXME available numbering schemes</p></li>
+<li><p><strong>allowed_species</strong> – None or one or more of: ‘human’, ‘mouse’,’rat’,’rabbit’,’rhesus’,’pig’,’alpaca’</p></li>
+<li><p><strong>aa_dict</strong> – Create Chain object directly from dictionary of region objects (internal use)</p></li>
+<li><p><strong>chain_type</strong> – Explicitly assign chain type, used together with aa_dict= (internal use)</p></li>
+</ul>
+</dd>
+</dl>
 <dl class="py method">
 <dt id="abnumber.Chain.align">
-<code class="sig-name descname">align</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">others</span></em><span class="sig-paren">)</span> &#x2192; abnumber.chain.Alignment<a class="headerlink" href="#abnumber.Chain.align" title="Permalink to this definition">¶</a></dt>
-<dd><p>Align this chain to other chains by using their existing numbering
-:param others: Chains to align
-:return: Alignment object</p>
+<code class="sig-name descname">align</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">other</span></em><span class="sig-paren">)</span> &#x2192; abnumber.chain.Alignment<a class="headerlink" href="#abnumber.Chain.align" title="Permalink to this definition">¶</a></dt>
+<dd><p>Align this chain to other chains by using their existing numbering</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">abnumber</span> <span class="kn">import</span> <span class="n">Chain</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seq1</span> <span class="o">=</span> <span class="s1">&#39;QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSSAKTTAP&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain1</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">seq1</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="s1">&#39;imgt&#39;</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seq2</span> <span class="o">=</span> <span class="s1">&#39;QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTAYMQKTSLTSEDSAVYYCARYYDDYLDRWGQGTTLTVSSAKTTAP&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain2</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">seq2</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="s1">&#39;imgt&#39;</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">alignment</span> <span class="o">=</span> <span class="n">chain1</span><span class="o">.</span><span class="n">align</span><span class="p">(</span><span class="n">chain2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">alignment</span><span class="o">.</span><span class="n">format</span><span class="p">())</span>
+<span class="go">QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPS-RGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS</span>
+<span class="go">||||.||||||.||||+|||||||||||.||||||||||||||||+||||||||.|.||||||||||||||||||||||||||.+|||||||||||||||||....||.|||||||||||</span>
+<span class="go">QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTAYMQKTSLTSEDSAVYYCARYYD--DYLDRWGQGTTLTVSS</span>
+<span class="go">                         ^^^^^^^^                 ^^^^^^^^^                                      ^^^^^^^^^^^^</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>other</strong> – The <a class="reference internal" href="#abnumber.Chain" title="abnumber.Chain"><code class="xref py py-class docutils literal notranslate"><span class="pre">Chain</span></code></a> object to align, can be repeated to create a multiple sequence alignment</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><a class="reference internal" href="#abnumber.Alignment" title="abnumber.Alignment"><code class="xref py py-class docutils literal notranslate"><span class="pre">Alignment</span></code></a> object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.cdr1_seq">
+<em class="property">property </em><code class="sig-name descname">cdr1_seq</code><a class="headerlink" href="#abnumber.Chain.cdr1_seq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unaligned string representation of the CDR 1 region sequence</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.cdr2_seq">
+<em class="property">property </em><code class="sig-name descname">cdr2_seq</code><a class="headerlink" href="#abnumber.Chain.cdr2_seq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unaligned string representation of the CDR 2 region sequence</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.cdr3_seq">
+<em class="property">property </em><code class="sig-name descname">cdr3_seq</code><a class="headerlink" href="#abnumber.Chain.cdr3_seq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unaligned string representation of the CDR 3 region sequence</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="abnumber.Chain.chain_type">
+<code class="sig-name descname">chain_type</code><a class="headerlink" href="#abnumber.Chain.chain_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Chain type as identified by ANARCI: <code class="docutils literal notranslate"><span class="pre">H</span></code> (heavy), <code class="docutils literal notranslate"><span class="pre">K</span></code> (kappa light) or <code class="docutils literal notranslate"><span class="pre">L</span></code> (lambda light)</p>
+<p>See also <a class="reference internal" href="#abnumber.Chain.is_heavy_chain" title="abnumber.Chain.is_heavy_chain"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Chain.is_heavy_chain()</span></code></a> and <a class="reference internal" href="#abnumber.Chain.is_light_chain" title="abnumber.Chain.is_light_chain"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Chain.is_light_chain()</span></code></a>.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -184,6 +274,110 @@
 <dd><p>Create a copy of this chain, optionally with a replacement sequence that is placed into the same numbering
 :param replace_seq: Optional replacement sequence, needs to be the same length
 :return: new Chain object</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.format">
+<code class="sig-name descname">format</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">method</span><span class="o">=</span><span class="default_value">'wide'</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.format" title="Permalink to this definition">¶</a></dt>
+<dd><p>Format sequence to string</p>
+<p>By default, produces “wide” format with sequence on first line and CDR regions higlighted with <code class="docutils literal notranslate"><span class="pre">^</span></code> on second line</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">format</span><span class="p">())</span>
+<span class="go">QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS</span>
+<span class="go">                         ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>method</strong> – use <code class="docutils literal notranslate"><span class="pre">&quot;wide&quot;</span></code> for <a class="reference internal" href="#abnumber.Chain.wide_format" title="abnumber.Chain.wide_format"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Chain.wide_format()</span></code></a> or <code class="docutils literal notranslate"><span class="pre">&quot;tall&quot;</span></code> for <a class="reference internal" href="#abnumber.Chain.tall_format" title="abnumber.Chain.tall_format"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Chain.tall_format()</span></code></a></p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>formatted string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.fw1_seq">
+<em class="property">property </em><code class="sig-name descname">fw1_seq</code><a class="headerlink" href="#abnumber.Chain.fw1_seq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unaligned string representation of the Framework 1 region sequence</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.fw2_seq">
+<em class="property">property </em><code class="sig-name descname">fw2_seq</code><a class="headerlink" href="#abnumber.Chain.fw2_seq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unaligned string representation of the Framework 2 region sequence</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.fw3_seq">
+<em class="property">property </em><code class="sig-name descname">fw3_seq</code><a class="headerlink" href="#abnumber.Chain.fw3_seq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unaligned string representation of the Framework 3 region sequence</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.fw4_seq">
+<em class="property">property </em><code class="sig-name descname">fw4_seq</code><a class="headerlink" href="#abnumber.Chain.fw4_seq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unaligned string representation of the Framework 4 region sequence</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.get_cdr1_matches">
+<code class="sig-name descname">get_cdr1_matches</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.get_cdr1_matches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get number of identical residues at corresponding positions in the CDR 1 region</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.get_cdr2_matches">
+<code class="sig-name descname">get_cdr2_matches</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.get_cdr2_matches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get number of identical residues at corresponding positions in the Framework 4 region</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.get_cdr3_matches">
+<code class="sig-name descname">get_cdr3_matches</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.get_cdr3_matches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get number of identical residues at corresponding positions in the Framework 4 region</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.get_cdr_matches">
+<code class="sig-name descname">get_cdr_matches</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.get_cdr_matches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get number of identical residues at corresponding positions in all the CDR regions</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.get_fw1_matches">
+<code class="sig-name descname">get_fw1_matches</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.get_fw1_matches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get number of identical residues at corresponding positions in Framework 1 region</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.get_fw2_matches">
+<code class="sig-name descname">get_fw2_matches</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.get_fw2_matches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get number of identical residues at corresponding positions in the Framework 2 region</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.get_fw3_matches">
+<code class="sig-name descname">get_fw3_matches</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.get_fw3_matches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get number of identical residues at corresponding positions in the Framework 3 region</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.get_fw4_matches">
+<code class="sig-name descname">get_fw4_matches</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.get_fw4_matches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get number of identical residues at corresponding positions in the Framework 4 region</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.get_fw_matches">
+<code class="sig-name descname">get_fw_matches</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.get_fw_matches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get number of identical residues at corresponding positions in the Framework regions</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.get_matches">
+<code class="sig-name descname">get_matches</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.get_matches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get number of identical residues at corresponding positions in the full variable region</p>
 </dd></dl>
 
 <dl class="py method">
@@ -196,37 +390,203 @@
 </dd></dl>
 
 <dl class="py method">
+<dt id="abnumber.Chain.has_same_cdr_positions">
+<code class="sig-name descname">has_same_cdr_positions</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.has_same_cdr_positions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if this chain has the same set of CDR position numbers</p>
+<p>Used to filter pairs of chains that could be functionally related</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.is_heavy_chain">
+<code class="sig-name descname">is_heavy_chain</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.is_heavy_chain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if this chain is heavy chain (<code class="docutils literal notranslate"><span class="pre">chain_type==&quot;H&quot;</span></code>)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.is_kappa_light_chain">
+<code class="sig-name descname">is_kappa_light_chain</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.is_kappa_light_chain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if this chain is kappa light chain (<code class="docutils literal notranslate"><span class="pre">chain_type==&quot;K&quot;</span></code>)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.is_lambda_light_chain">
+<code class="sig-name descname">is_lambda_light_chain</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.is_lambda_light_chain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if this chain is lambda light chain (<code class="docutils literal notranslate"><span class="pre">chain_type==&quot;L&quot;</span></code>)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.is_light_chain">
+<code class="sig-name descname">is_light_chain</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.is_light_chain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if this chain is light chain (<code class="docutils literal notranslate"><span class="pre">chain_type==&quot;K&quot;</span> <span class="pre">or</span> <span class="pre">chain_type==&quot;L&quot;</span></code>)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="abnumber.Chain.name">
+<code class="sig-name descname">name</code><a class="headerlink" href="#abnumber.Chain.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>User-provided sequence identifier</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="abnumber.Chain.positions">
 <em class="property">property </em><code class="sig-name descname">positions</code><a class="headerlink" href="#abnumber.Chain.positions" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get dictionary of Position -&gt; Amino acid
+<dd><p>Dictionary of Position -&gt; Amino acid
 :return: dictionary of Position -&gt; Amino acid</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="abnumber.Chain.regions">
 <em class="property">property </em><code class="sig-name descname">regions</code><a class="headerlink" href="#abnumber.Chain.regions" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get dictionary of region dictionaries (Position -&gt; Amino acid)
+<dd><p>Dictionary of region dictionaries (Position -&gt; Amino acid)
 :return: Dictionary of Region name -&gt; dictionary of (Position -&gt; Amino acid)</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="abnumber.Chain.scheme">
+<code class="sig-name descname">scheme</code><a class="headerlink" href="#abnumber.Chain.scheme" title="Permalink to this definition">¶</a></dt>
+<dd><p>Numbering scheme used to align the sequence</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="abnumber.Chain.seq">
 <em class="property">property </em><code class="sig-name descname">seq</code><a class="headerlink" href="#abnumber.Chain.seq" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get unaligned string representation of the variable chain sequence
-:return: Unaligned string representation of the variable chain sequence</p>
+<dd><p>Unaligned string representation of the variable chain sequence</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Unaligned string representation of the variable chain sequence</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="abnumber.Chain.tail">
+<code class="sig-name descname">tail</code><a class="headerlink" href="#abnumber.Chain.tail" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constant region sequence</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.tall_format">
+<code class="sig-name descname">tall_format</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.tall_format" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create string with one position per line, showing position numbers and amino acids</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">tall_format</span><span class="p">())</span>
+<span class="go">fw1 H1    Q</span>
+<span class="go">fw1 H2    V</span>
+<span class="go">fw1 H3    Q</span>
+<span class="go">fw1 H4    L</span>
+<span class="go">fw1 H5    Q</span>
+<span class="go">fw1 H6    Q</span>
+<span class="go">fw1 H7    S</span>
+<span class="gp">...</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>formatted string</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Chain.wide_format">
+<code class="sig-name descname">wide_format</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.wide_format" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create string with sequence on first line and CDR regions higlighted with <cite>^</cite> on second line</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">wide_format</span><span class="p">())</span>
+<span class="go">QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS</span>
+<span class="go">                         ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>formatted string</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
 
+</div>
+<div class="section" id="alignment">
+<h1>Alignment<a class="headerlink" href="#alignment" title="Permalink to this headline">¶</a></h1>
 <dl class="py class">
 <dt id="abnumber.Alignment">
 <em class="property">class </em><code class="sig-prename descclassname">abnumber.</code><code class="sig-name descname">Alignment</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">positions</span></em>, <em class="sig-param"><span class="n">residues</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Alignment" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Antibody chain alignment of two or more chains</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">abnumber</span> <span class="kn">import</span> <span class="n">Chain</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seq1</span> <span class="o">=</span> <span class="s1">&#39;QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSSAKTTAP&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain1</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">seq1</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="s1">&#39;imgt&#39;</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seq2</span> <span class="o">=</span> <span class="s1">&#39;QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTAYMQKTSLTSEDSAVYYCARYYDDYLDRWGQGTTLTVSSAKTTAP&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain2</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">seq2</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="s1">&#39;imgt&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">alignment</span> <span class="o">=</span> <span class="n">chain1</span><span class="o">.</span><span class="n">align</span><span class="p">(</span><span class="n">chain2</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Alignment can be sliced and iterated</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">pos</span><span class="p">,</span> <span class="p">(</span><span class="n">aa</span><span class="p">,</span> <span class="n">bb</span><span class="p">)</span> <span class="ow">in</span> <span class="n">alignment</span><span class="p">[:</span><span class="mi">5</span><span class="p">]:</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">aa</span><span class="p">,</span> <span class="n">bb</span><span class="p">)</span>
+<span class="go">H1  Q Q</span>
+<span class="go">H2  V V</span>
+<span class="go">H3  Q Q</span>
+<span class="go">H4  L L</span>
+<span class="go">H5  Q V</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt id="abnumber.Alignment.format">
+<code class="sig-name descname">format</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mark_identity</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">mark_cdrs</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">colored</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Alignment.format" title="Permalink to this definition">¶</a></dt>
+<dd><p>Format alignment to string</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">alignment</span><span class="o">.</span><span class="n">format</span><span class="p">())</span>
+<span class="go">QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPS-RGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS</span>
+<span class="go">||||.||||||.||||+|||||||||||.||||||||||||||||+||||||||.|.||||||||||||||||||||||||||.+|||||||||||||||||....||.|||||||||||</span>
+<span class="go">QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTAYMQKTSLTSEDSAVYYCARYYD--DYLDRWGQGTTLTVSS</span>
+<span class="go">                         ^^^^^^^^                 ^^^^^^^^^                                      ^^^^^^^^^^^^</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">alignment</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mark_identity</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mark_cdrs</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+<span class="go">QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPS-RGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS</span>
+<span class="go">QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTAYMQKTSLTSEDSAVYYCARYYD--DYLDRWGQGTTLTVSS</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mark_identity</strong> – Add BLAST style middle line showing identity (<code class="docutils literal notranslate"><span class="pre">|</span></code>), similar residue (<code class="docutils literal notranslate"><span class="pre">+</span></code>) or different residue (<code class="docutils literal notranslate"><span class="pre">.</span></code>)</p></li>
+<li><p><strong>mark_cdrs</strong> – Add line highlighting CDR regions using <code class="docutils literal notranslate"><span class="pre">^</span></code></p></li>
+<li><p><strong>colored</strong> – Highlight mutations using shell colors</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>formatted string</p>
+</dd>
+</dl>
+</dd></dl>
 
+<dl class="py method">
+<dt id="abnumber.Alignment.has_mutation">
+<code class="sig-name descname">has_mutation</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Alignment.has_mutation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if there is a mutation in the alignment or not</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="position">
+<h1>Position<a class="headerlink" href="#position" title="Permalink to this headline">¶</a></h1>
 <dl class="py class">
 <dt id="abnumber.Position">
 <em class="property">class </em><code class="sig-prename descclassname">abnumber.</code><code class="sig-name descname">Position</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">chain_type</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">number</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">letter</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">scheme</span><span class="p">:</span> <span class="n">str</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Position" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Numbered position using a given numbering scheme</p>
+<p>Used as a key to store Position -&gt; Amino acid information.</p>
+<p>Position objects are sortable according to the schema simply using <code class="docutils literal notranslate"><span class="pre">sorted()</span></code>:</p>
+<dl class="py method">
+<dt id="abnumber.Position.get_region">
+<code class="sig-name descname">get_region</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Position.get_region" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get string name of this position’s region</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="abnumber.Position.is_in_cdr">
+<code class="sig-name descname">is_in_cdr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Position.is_in_cdr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if given position is found in the CDR regions</p>
+</dd></dl>
+
+</dd></dl>
 
 </div>
 
