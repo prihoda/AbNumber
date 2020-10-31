@@ -18,5 +18,10 @@ endif
 dist:
 	python setup.py sdist bdist_wheel
 
-test:
+test: unit-test jupyter-test
+
+jupyter-test: examples/AbNumber_getting_started.ipynb
+	papermill $< > /dev/null
+
+unit-test:
 	pytest test
