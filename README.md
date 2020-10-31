@@ -9,20 +9,9 @@ Install using Bioconda:
 conda install -c bioconda abnumber
 ```
 
-## Usage
+## Documentation
 
-```python
-from abnumber import Chain
-
-chain = Chain('ELVMTQSPSSLSASVGDRVNIACRASQGISSALAWYQQKPGKAPRLLIYDASNLESGVPSRFSGSGSGTDFTLTISSLQPEDFAIYYCQQFNSYPLTFGGGTKVEIKRTV')
-
-print(chain.format())
-# ELVMTQSPSSLSASVGDRVNIACRASQGISSALAWYQQKPGKAPRLLIYDASNLESGVPSRFSGSGSGTDFTLTISSLQPEDFAIYYCQQFNSYPLTFGGGTKVEIK
-#                           ^^^^^^                 ^^^                                    ^^^^^^^^^          
-
-print(chain.cdr3_seq)
-# QQFNSYPLT 
-```
+See [AbNumber Documentation](https://abnumber.readthedocs.io/en/latest/)
 
 ## Credits
 

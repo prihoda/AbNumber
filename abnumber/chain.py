@@ -264,8 +264,8 @@ class Chain:
         return Chain(sequence=None, aa_dict=aa_dict, name=self.name, scheme=self.scheme, chain_type=self.chain_type)
 
     def graft_cdrs_onto(self, other: 'Chain', name: str = None) -> 'Chain':
-        """
-        Graft CDRs from this Chain onto another chain
+        """Graft CDRs from this Chain onto another chain
+
         :param other: Chain to graft CDRs into
         :param name: Name of new Chain
         :return: Chain with CDRs grafted from this chain and frameworks from the given chain
@@ -367,8 +367,9 @@ class Alignment:
     >>> seq2 = 'QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTAYMQKTSLTSEDSAVYYCARYYDDYLDRWGQGTTLTVSSAKTTAP'
     >>> chain2 = Chain(seq2, scheme='imgt')
     >>> alignment = chain1.align(chain2)
-    >>>
-    >>> # Alignment can be sliced and iterated
+
+    Alignment can be sliced and iterated:
+
     >>> for pos, (aa, bb) in alignment[:5]:
     >>>     print(pos, aa, bb)
     H1  Q Q
@@ -376,6 +377,7 @@ class Alignment:
     H3  Q Q
     H4  L L
     H5  Q V
+    ...
 
     """
     def __init__(self, positions, residues):

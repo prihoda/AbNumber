@@ -13,18 +13,24 @@ Welcome to AbNumber's documentation!
 .. automodule:: abnumber
    :members:
 
+Antibody chain representation, alignment and numbering using ANARCI
+
 Getting Started
 ===============
 
-1) Set up Bioconda
-
-Follow [Bioconda Getting Started](https://bioconda.github.io/user/install.html) to enable Bioconda
-
-2) Install AbNumber using Bioconda:
+Install AbNumber using Bioconda:
 
 .. code-block:: bash
 
-   conda install abnumber
+   conda install -c bioconda abnumber
+
+Credits
+-------
+
+This tool is based on `ANARCI
+<https://github.com/oxpig/ANARCI>`_, please cite the ANARCI paper:
+`ANARCI: antigen receptor numbering and receptor classification
+<https://doi.org/10.1093/bioinformatics/btv552>`_
 
 
 Examples

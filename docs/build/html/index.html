@@ -83,7 +83,10 @@
               <!-- Local TOC -->
               <div class="local-toc"><ul>
 <li><a class="reference internal" href="#">Welcome to AbNumber’s documentation!</a></li>
-<li><a class="reference internal" href="#getting-started">Getting Started</a></li>
+<li><a class="reference internal" href="#getting-started">Getting Started</a><ul>
+<li><a class="reference internal" href="#credits">Credits</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#examples">Examples</a></li>
 <li><a class="reference internal" href="#chain">Chain</a></li>
 <li><a class="reference internal" href="#alignment">Alignment</a></li>
@@ -157,21 +160,58 @@
 <h1>Welcome to AbNumber’s documentation!<a class="headerlink" href="#welcome-to-abnumber-s-documentation" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 </div>
-<span class="target" id="module-abnumber"></span></div>
+<span class="target" id="module-abnumber"></span><p>Antibody chain representation, alignment and numbering using ANARCI</p>
+</div>
 <div class="section" id="getting-started">
 <h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
-<ol class="arabic simple">
-<li><p>Set up Bioconda</p></li>
-</ol>
-<p>TODO</p>
-<ol class="arabic simple" start="2">
-<li><p>Install AbNumber using Bioconda:</p></li>
-</ol>
-<p>TODO</p>
+<p>Install AbNumber using Bioconda:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda install -c bioconda abnumber
+</pre></div>
+</div>
+<div class="section" id="credits">
+<h2>Credits<a class="headerlink" href="#credits" title="Permalink to this headline">¶</a></h2>
+<p>This tool is based on <a class="reference external" href="https://github.com/oxpig/ANARCI">ANARCI</a>, please cite the ANARCI paper:
+<a class="reference external" href="https://doi.org/10.1093/bioinformatics/btv552">ANARCI: antigen receptor numbering and receptor classification</a></p>
+</div>
 </div>
 <div class="section" id="examples">
 <h1>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h1>
-<p>TODO</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">abnumber</span> <span class="kn">import</span> <span class="n">Chain</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seq</span> <span class="o">=</span> <span class="s1">&#39;QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSSAKTTAPSVYPLA&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="s1">&#39;imgt&#39;</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">format</span><span class="p">())</span>
+<span class="go">QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS</span>
+<span class="go">                       ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="o">.</span><span class="n">chain_type</span>
+<span class="go">&#39;H&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="o">.</span><span class="n">seq</span>
+<span class="go">&#39;QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="o">.</span><span class="n">tail</span>
+<span class="go">&#39;AKTTAPSVYPLA&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="o">.</span><span class="n">cdr3_seq</span>
+<span class="go">&#39;ARYYDDHYCLDY&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">tall_format</span><span class="p">())</span>
+<span class="go">fw1 H1    Q</span>
+<span class="go">fw1 H2    V</span>
+<span class="go">fw1 H3    Q</span>
+<span class="go">fw1 H4    L</span>
+<span class="go">fw1 H5    Q</span>
+<span class="go">fw1 H6    Q</span>
+<span class="go">fw1 H7    S</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seq2</span> <span class="o">=</span> <span class="s1">&#39;QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTAYMQKTSLTSEDSAVYYCARYYDDYLDRWGQGTTLTVSSAKTTAP&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain2</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">seq2</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="s1">&#39;imgt&#39;</span><span class="p">)</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">alignment</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">align</span><span class="p">(</span><span class="n">chain2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">alignment</span><span class="o">.</span><span class="n">format</span><span class="p">())</span>
+<span class="go">QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPS-RGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS</span>
+<span class="go">||||.||||||.||||+|||||||||||.||||||||||||||||+||||||||.|.||||||||||||||||||||||||||.+|||||||||||||||||....||.|||||||||||</span>
+<span class="go">QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTAYMQKTSLTSEDSAVYYCARYYD--DYLDRWGQGTTLTVSS</span>
+<span class="go">                        ^^^^^^^^                 ^^^^^^^^^                                      ^^^^^^^^^^^^</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="chain">
 <h1>Chain<a class="headerlink" href="#chain" title="Permalink to this headline">¶</a></h1>
@@ -191,14 +231,6 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">format</span><span class="p">())</span>
 <span class="go">QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS</span>
 <span class="go">                         ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="o">.</span><span class="n">chain_type</span>
-<span class="go">&#39;H&#39;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="o">.</span><span class="n">seq</span>
-<span class="go">&#39;QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS&#39;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="o">.</span><span class="n">tail</span>
-<span class="go">&#39;AKTTAPSVYPLA&#39;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="o">.</span><span class="n">cdr3_seq</span>
-<span class="go">&#39;ARYYDDHYCLDY&#39;</span>
 </pre></div>
 </div>
 <dl class="field-list simple">
@@ -383,10 +415,18 @@
 <dl class="py method">
 <dt id="abnumber.Chain.graft_cdrs_onto">
 <code class="sig-name descname">graft_cdrs_onto</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">other</span><span class="p">:</span> <span class="n">abnumber.chain.Chain</span></em>, <em class="sig-param"><span class="n">name</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">None</span></em><span class="sig-paren">)</span> &#x2192; abnumber.chain.Chain<a class="headerlink" href="#abnumber.Chain.graft_cdrs_onto" title="Permalink to this definition">¶</a></dt>
-<dd><p>Graft CDRs from this Chain onto another chain
-:param other: Chain to graft CDRs into
-:param name: Name of new Chain
-:return: Chain with CDRs grafted from this chain and frameworks from the given chain</p>
+<dd><p>Graft CDRs from this Chain onto another chain</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>other</strong> – Chain to graft CDRs into</p></li>
+<li><p><strong>name</strong> – Name of new Chain</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Chain with CDRs grafted from this chain and frameworks from the given chain</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -518,9 +558,10 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="n">seq2</span> <span class="o">=</span> <span class="s1">&#39;QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTAYMQKTSLTSEDSAVYYCARYYDDYLDRWGQGTTLTVSSAKTTAP&#39;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">chain2</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">seq2</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="s1">&#39;imgt&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">alignment</span> <span class="o">=</span> <span class="n">chain1</span><span class="o">.</span><span class="n">align</span><span class="p">(</span><span class="n">chain2</span><span class="p">)</span>
-<span class="go">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Alignment can be sliced and iterated</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">pos</span><span class="p">,</span> <span class="p">(</span><span class="n">aa</span><span class="p">,</span> <span class="n">bb</span><span class="p">)</span> <span class="ow">in</span> <span class="n">alignment</span><span class="p">[:</span><span class="mi">5</span><span class="p">]:</span>
+</pre></div>
+</div>
+<p>Alignment can be sliced and iterated:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">pos</span><span class="p">,</span> <span class="p">(</span><span class="n">aa</span><span class="p">,</span> <span class="n">bb</span><span class="p">)</span> <span class="ow">in</span> <span class="n">alignment</span><span class="p">[:</span><span class="mi">5</span><span class="p">]:</span>
 <span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">aa</span><span class="p">,</span> <span class="n">bb</span><span class="p">)</span>
 <span class="go">H1  Q Q</span>
 <span class="go">H2  V V</span>
