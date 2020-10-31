@@ -14,22 +14,36 @@ from Bio.Seq import Seq
 
 class Chain:
     """
-    Structure storing an aligned antibody chain using a chosen antibody numbering scheme
+    Antibody chain aligned to a chosen antibody numbering scheme
 
-    Use `Chain('EVQLQV...')` to create a Chain from an unaligned amino acid sequence
+    :example:
+
+    >>> from abnumber import Chain
+    >>>
+    >>> seq = 'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSSAKTTAPSVYPLA'
+    >>> chain = Chain(seq, scheme='imgt')
+    >>>
+    >>> print(chain.format())
+    QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS
+                             ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^
+    >>> chain.chain_type
+    'H'
+    >>> chain.seq
+    'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS'
+    >>> chain.tail
+    'AKTTAPSVYPLA'
+    >>> chain.cdr3_seq
+    'ARYYDDHYCLDY'
+
+    :param sequence: Unaligned string sequence
+    :param name: Optional sequence identifier
+    :param scheme: Numbering scheme: FIXME available numbering schemes
+    :param allowed_species: None or one or more of: 'human', 'mouse','rat','rabbit','rhesus','pig','alpaca'
+    :param aa_dict: Create Chain object directly from dictionary of region objects (internal use)
+    :param chain_type: Explicitly assign chain type, used together with aa_dict= (internal use)
     """
 
-    def __init__(self, sequence, name=None, scheme='imgt', allowed_species=None, aa_dict=None, chain_type=None):
-        """
-        Create a Chain object from an unaligned string sequence
-
-        :param sequence: Unaligned string sequence
-        :param name: Optional sequence identifier
-        :param scheme: Numbering scheme: FIXME available numbering schemes
-        :param allowed_species: None or one or more of: 'human', 'mouse','rat','rabbit','rhesus','pig','alpaca'
-        :param aa_dict: Create Chain object directly from dictionary of region objects (internal use)
-        :param chain_type: Explicitly assign chain type, used together with aa_dict= (internal use)
-       """
+    def __init__(self, sequence, scheme, name=None, allowed_species=None, aa_dict=None, chain_type=None, tail=None):
 
         assert scheme in ['imgt']
 
@@ -40,15 +54,28 @@ class Chain:
         else:
             if chain_type is not None:
                 raise ValueError('Do not use chain_type= when providing sequence=, it will be inferred automatically')
+            if tail is not None:
+                raise ValueError('Do not use tail= when providing sequence=, it will be inferred automatically')
             if isinstance(sequence, Seq):
                 sequence = str(sequence)
-            aa_dict, chain_type = _anarci_align(sequence, scheme=scheme, allowed_species=allowed_species)
+            aa_dict, chain_type, tail = _anarci_align(sequence, scheme=scheme, allowed_species=allowed_species)
 
         _validate_chain_type(chain_type)
 
         self.name = name
+        """User-provided sequence identifier
+        """
         self.chain_type = chain_type
+        """Chain type as identified by ANARCI: ``H`` (heavy), ``K`` (kappa light) or ``L`` (lambda light)
+        
+        See also :meth:`Chain.is_heavy_chain` and :meth:`Chain.is_light_chain`.
+        """
         self.scheme = scheme
+        """Numbering scheme used to align the sequence
+        """
+        self.tail = tail
+        """Constant region sequence
+        """
 
         self.fw1_dict = OrderedDict()
         self.cdr1_dict = OrderedDict()
@@ -75,20 +102,53 @@ class Chain:
         return self.seq
 
     def format(self, method='wide'):
+        """Format sequence to string
+
+        By default, produces "wide" format with sequence on first line and CDR regions higlighted with ``^`` on second line
+
+        >>> print(chain.format())
+        QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS
+                                 ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^
+
+        :param method: use ``"wide"`` for :meth:`Chain.wide_format` or ``"tall"`` for :meth:`Chain.tall_format()`
+        :return: formatted string
+        """
         if method == 'wide':
-            return self.to_wide_string()
+            return self.wide_format()
         elif method == 'tall':
-            return self.to_tall_string()
+            return self.tall_format()
         raise ValueError(f'Use method="wide" or method="tall", unknown method: "{method}"')
 
-    def to_tall_string(self):
+    def tall_format(self):
+        """Create string with one position per line, showing position numbers and amino acids
+
+        >>> print(chain.tall_format())
+        fw1 H1    Q
+        fw1 H2    V
+        fw1 H3    Q
+        fw1 H4    L
+        fw1 H5    Q
+        fw1 H6    Q
+        fw1 H7    S
+        ...
+
+        :return: formatted string
+        """
         seq = []
         for region, aa_dict in self.regions.items():
             for pos, aa in aa_dict.items():
-                seq.append(f'{region: >4} {pos: <4} {aa}')
+                seq.append(f'{region: >4} {str(pos): <5} {aa}')
         return '\n'.join(seq)
 
-    def to_wide_string(self):
+    def wide_format(self):
+        """Create string with sequence on first line and CDR regions higlighted with `^` on second line
+
+        >>> print(chain.wide_format())
+        QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS
+                                 ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^
+
+        :return: formatted string
+        """
         annot = ' ' * len(self.fw1_dict)
         annot += '^' * len(self.cdr1_dict)
         annot += ' ' * len(self.fw2_dict)
@@ -99,18 +159,26 @@ class Chain:
         return self.seq + '\n' + annot
 
     def is_heavy_chain(self):
+        """Check if this chain is heavy chain (``chain_type=="H"``)"""
         return self.chain_type == 'H'
 
     def is_light_chain(self):
+        """Check if this chain is light chain (``chain_type=="K" or chain_type=="L"``)"""
         return self.is_lambda_light_chain() or self.is_kappa_light_chain()
 
     def is_lambda_light_chain(self):
+        """Check if this chain is lambda light chain (``chain_type=="L"``)"""
         return self.chain_type == 'L'
 
     def is_kappa_light_chain(self):
+        """Check if this chain is kappa light chain (``chain_type=="K"``)"""
         return self.chain_type == 'K'
 
     def has_same_cdr_positions(self, other):
+        """Check if this chain has the same set of CDR position numbers
+
+        Used to filter pairs of chains that could be functionally related
+        """
         if len(self.cdr1_dict) != len(other.cdr1) or self.cdr1_dict.keys() != other.cdr1.keys():
             return False
         if len(self.cdr2_dict) != len(other.cdr2) or self.cdr2_dict.keys() != other.cdr2.keys():
@@ -120,46 +188,71 @@ class Chain:
         return True
 
     def get_fw1_matches(self, other):
+        """Get number of identical residues at corresponding positions in Framework 1 region"""
         return sum(aa == other.fw1.get(pos) for pos, aa in self.fw1_dict.items())
 
     def get_cdr1_matches(self, other):
+        """Get number of identical residues at corresponding positions in the CDR 1 region"""
         return sum(aa == other.cdr1.get(pos) for pos, aa in self.cdr1_dict.items())
 
     def get_fw2_matches(self, other):
+        """Get number of identical residues at corresponding positions in the Framework 2 region"""
         return sum(aa == other.fw2.get(pos) for pos, aa in self.fw2_dict.items())
 
     def get_cdr2_matches(self, other):
+        """Get number of identical residues at corresponding positions in the Framework 4 region"""
         return sum(aa == other.cdr2.get(pos) for pos, aa in self.cdr2_dict.items())
 
     def get_fw3_matches(self, other):
+        """Get number of identical residues at corresponding positions in the Framework 3 region"""
         return sum(aa == other.fw3.get(pos) for pos, aa in self.fw3_dict.items())
 
     def get_cdr3_matches(self, other):
+        """Get number of identical residues at corresponding positions in the Framework 4 region"""
         return sum(aa == other.cdr3.get(pos) for pos, aa in self.cdr3_dict.items())
 
     def get_fw4_matches(self, other):
+        """Get number of identical residues at corresponding positions in the Framework 4 region"""
         return sum(aa == other.fw4.get(pos) for pos, aa in self.fw4_dict.items())
 
     def get_fw_matches(self, other):
+        """Get number of identical residues at corresponding positions in the Framework regions"""
         return self.get_fw1_matches(other) + self.get_fw2_matches(other) + self.get_fw3_matches(
             other) + self.get_fw4_matches(other)
 
     def get_cdr_matches(self, other):
+        """Get number of identical residues at corresponding positions in all the CDR regions"""
         return self.get_cdr1_matches(other) + self.get_cdr2_matches(other) + self.get_cdr3_matches(other)
 
     def get_matches(self, other):
+        """Get number of identical residues at corresponding positions in the full variable region"""
         return self.get_fw_matches(other) + self.get_cdr_matches(other)
 
-    def align(self, *others) -> 'Alignment':
-        """
-        Align this chain to other chains by using their existing numbering
-        :param others: Chains to align
-        :return: Alignment object
+    def align(self, *other) -> 'Alignment':
+        """Align this chain to other chains by using their existing numbering
+
+        >>> from abnumber import Chain
+        >>>
+        >>> seq1 = 'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSSAKTTAP'
+        >>> chain1 = Chain(seq1, scheme='imgt')
+        >>>
+        >>> seq2 = 'QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTAYMQKTSLTSEDSAVYYCARYYDDYLDRWGQGTTLTVSSAKTTAP'
+        >>> chain2 = Chain(seq2, scheme='imgt')
+        >>>
+        >>> alignment = chain1.align(chain2)
+        >>> print(alignment.format())
+        QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPS-RGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS
+        ||||.||||||.||||+|||||||||||.||||||||||||||||+||||||||.|.||||||||||||||||||||||||||.+|||||||||||||||||....||.|||||||||||
+        QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTAYMQKTSLTSEDSAVYYCARYYD--DYLDRWGQGTTLTVSS
+                                 ^^^^^^^^                 ^^^^^^^^^                                      ^^^^^^^^^^^^
+
+        :param other: The :class:`Chain` object to align, can be repeated to create a multiple sequence alignment
+        :return: :class:`Alignment` object
         """
         pos_dicts = [self.positions]
-        for other in others:
-            assert isinstance(other, Chain), f'Expected Chain object, got {type(other)}: {other}'
-            pos_dicts.append(other.positions)
+        for chain in other:
+            assert isinstance(chain, Chain), f'Expected Chain object, got {type(chain)}: {chain}'
+            pos_dicts.append(chain.positions)
         shared_pos = sorted(set(pos for pos_dict in pos_dicts for pos in pos_dict.keys()))
         residues = [tuple(pos_dict.get(pos, '-') for pos_dict in pos_dicts) for pos in shared_pos]
         return Alignment(shared_pos, residues)
@@ -203,8 +296,7 @@ class Chain:
 
     @property
     def regions(self):
-        """
-        Get dictionary of region dictionaries (Position -> Amino acid)
+        """Dictionary of region dictionaries (Position -> Amino acid)
         :return: Dictionary of Region name -> dictionary of (Position -> Amino acid)
         """
         return OrderedDict(
@@ -219,8 +311,7 @@ class Chain:
 
     @property
     def positions(self):
-        """
-        Get dictionary of Position -> Amino acid
+        """Dictionary of Position -> Amino acid
         :return: dictionary of Position -> Amino acid
         """
         positions = OrderedDict()
@@ -231,42 +322,70 @@ class Chain:
 
     @property
     def seq(self):
-        """
-        Get unaligned string representation of the variable chain sequence
+        """Unaligned string representation of the variable chain sequence
+
         :return: Unaligned string representation of the variable chain sequence
         """
         return ''.join(self.positions.values())
 
     @property
     def fw1_seq(self):
+        """Unaligned string representation of the Framework 1 region sequence"""
         return ''.join(self.fw1_dict.values())
 
     @property
     def cdr1_seq(self):
+        """Unaligned string representation of the CDR 1 region sequence"""
         return ''.join(self.cdr1_dict.values())
 
     @property
     def fw2_seq(self):
+        """Unaligned string representation of the Framework 2 region sequence"""
         return ''.join(self.fw2_dict.values())
 
     @property
     def cdr2_seq(self):
+        """Unaligned string representation of the CDR 2 region sequence"""
         return ''.join(self.cdr2_dict.values())
 
     @property
     def fw3_seq(self):
+        """Unaligned string representation of the Framework 3 region sequence"""
         return ''.join(self.fw3_dict.values())
 
     @property
     def cdr3_seq(self):
+        """Unaligned string representation of the CDR 3 region sequence"""
         return ''.join(self.cdr3_dict.values())
 
     @property
     def fw4_seq(self):
+        """Unaligned string representation of the Framework 4 region sequence"""
         return ''.join(self.fw4_dict.values())
 
 
 class Alignment:
+    """Antibody chain alignment of two or more chains
+
+    >>> from abnumber import Chain
+    >>>
+    >>> seq1 = 'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSSAKTTAP'
+    >>> chain1 = Chain(seq1, scheme='imgt')
+    >>>
+    >>> seq2 = 'QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTAYMQKTSLTSEDSAVYYCARYYDDYLDRWGQGTTLTVSSAKTTAP'
+    >>> chain2 = Chain(seq2, scheme='imgt')
+    >>> alignment = chain1.align(chain2)
+    >>>
+    >>> # Alignment can be sliced and iterated
+    >>> for pos, (aa, bb) in alignment[:5]:
+    >>>     print(pos, aa, bb)
+    H1  Q Q
+    H2  V V
+    H3  Q Q
+    H4  L L
+    H5  Q V
+
+    """
     def __init__(self, positions, residues):
         assert len(positions) == len(residues)
         self.positions = positions
@@ -289,6 +408,22 @@ class Alignment:
         return len(self.positions)
 
     def format(self, mark_identity=True, mark_cdrs=True, colored=False):
+        """Format alignment to string
+
+        >>> print(alignment.format())
+        QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPS-RGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS
+        ||||.||||||.||||+|||||||||||.||||||||||||||||+||||||||.|.||||||||||||||||||||||||||.+|||||||||||||||||....||.|||||||||||
+        QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTAYMQKTSLTSEDSAVYYCARYYD--DYLDRWGQGTTLTVSS
+                                 ^^^^^^^^                 ^^^^^^^^^                                      ^^^^^^^^^^^^
+        >>> print(alignment.format(mark_identity=False, mark_cdrs=False))
+        QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPS-RGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS
+        QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTAYMQKTSLTSEDSAVYYCARYYD--DYLDRWGQGTTLTVSS
+
+        :param mark_identity: Add BLAST style middle line showing identity (``|``), similar residue (``+``) or different residue (``.``)
+        :param mark_cdrs: Add line highlighting CDR regions using ``^``
+        :param colored: Highlight mutations using shell colors
+        :return: formatted string
+        """
         seq1 = ''
         identity = ''
         seq2 = ''
@@ -313,10 +448,17 @@ class Alignment:
             ('\n' + cdrs) if mark_cdrs else '')
 
     def has_mutation(self):
+        """Check if there is a mutation in the alignment or not"""
         return any(len(set(aas)) != 1 for aas in self.residues)
 
 
 class Position:
+    """Numbered position using a given numbering scheme
+
+    Used as a key to store Position -> Amino acid information.
+
+    Position objects are sortable according to the schema simply using ``sorted()``:
+    """
     def __init__(self, chain_type: str, number: int, letter: str, scheme: str):
         _validate_chain_type(chain_type)
         self.chain_type: str = chain_type
@@ -325,10 +467,10 @@ class Position:
         self.scheme: str = scheme
 
     def __repr__(self):
-        return f'{self.chain_type_format()}{self.number}{self.letter}({self.scheme})'
+        return f'{self.chain_type_prefix()}{self.number}{self.letter}({self.scheme})'
 
     def __str__(self):
-        return f'{self.chain_type_format()}{self.number}{self.letter}'
+        return f'{self.chain_type_prefix()}{self.number}{self.letter}'
 
     def __hash__(self):
         return self.__repr__().__hash__()
@@ -341,7 +483,7 @@ class Position:
         assert self.scheme == other.scheme, 'Comparing positions in different schemes is not implemented'
         return self._sort_key() < other._sort_key()
 
-    def chain_type_format(self):
+    def chain_type_prefix(self):
         if self.chain_type == 'H':
             return 'H'
         if self.chain_type in ['K', 'L']:
@@ -359,12 +501,14 @@ class Position:
         return self.number, letter_ord
 
     def get_region(self):
+        """Get string name of this position's region"""
         if self.scheme == 'imgt':
             return IMGT_POS_DICT[self.number]
         else:
             raise NotImplementedError(f'Not supported scheme: {self.scheme}')
 
     def is_in_cdr(self):
+        """Check if given position is found in the CDR regions"""
         # FIXME
         return self.get_region().lower().startswith('cdr')
 
@@ -388,7 +532,8 @@ def _anarci_align(sequence, scheme, allowed_species):
     chain_type = ali[0]['chain_type']
     aa_dict = {Position(chain_type=chain_type, number=num, letter=letter, scheme=scheme): aa for (num, letter), aa in
                positions if aa != '-'}
-    return aa_dict, chain_type
+    tail = sequence[end+1:]
+    return aa_dict, chain_type, tail
 
 
 def is_similar_residue(a, b, matrix=MatrixInfo.blosum62):
