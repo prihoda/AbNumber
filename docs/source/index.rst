@@ -18,16 +18,53 @@ Getting Started
 
 1) Set up Bioconda
 
-TODO
+Follow [Bioconda Getting Started](https://bioconda.github.io/user/install.html) to enable Bioconda
 
 2) Install AbNumber using Bioconda:
 
-TODO
+.. code-block:: bash
+
+   conda install abnumber
+
 
 Examples
 ========
 
-TODO
+>>> from abnumber import Chain
+>>>
+>>> seq = 'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSSAKTTAPSVYPLA'
+>>> chain = Chain(seq, scheme='imgt')
+>>>
+>>> print(chain.format())
+QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS
+                       ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^
+>>> chain.chain_type
+'H'
+>>> chain.seq
+'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS'
+>>> chain.tail
+'AKTTAPSVYPLA'
+>>> chain.cdr3_seq
+'ARYYDDHYCLDY'
+>>> print(chain.tall_format())
+fw1 H1    Q
+fw1 H2    V
+fw1 H3    Q
+fw1 H4    L
+fw1 H5    Q
+fw1 H6    Q
+fw1 H7    S
+...
+>>> seq2 = 'QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTAYMQKTSLTSEDSAVYYCARYYDDYLDRWGQGTTLTVSSAKTTAP'
+>>> chain2 = Chain(seq2, scheme='imgt')
+>>>
+>>> alignment = chain.align(chain2)
+>>> print(alignment.format())
+QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPS-RGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS
+||||.||||||.||||+|||||||||||.||||||||||||||||+||||||||.|.||||||||||||||||||||||||||.+|||||||||||||||||....||.|||||||||||
+QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTAYMQKTSLTSEDSAVYYCARYYD--DYLDRWGQGTTLTVSS
+                        ^^^^^^^^                 ^^^^^^^^^                                      ^^^^^^^^^^^^
+
 
 Chain
 =====

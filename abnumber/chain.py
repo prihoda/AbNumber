@@ -26,14 +26,6 @@ class Chain:
     >>> print(chain.format())
     QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS
                              ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^
-    >>> chain.chain_type
-    'H'
-    >>> chain.seq
-    'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS'
-    >>> chain.tail
-    'AKTTAPSVYPLA'
-    >>> chain.cdr3_seq
-    'ARYYDDHYCLDY'
 
     :param sequence: Unaligned string sequence
     :param name: Optional sequence identifier

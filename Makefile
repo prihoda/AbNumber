@@ -13,11 +13,6 @@ endif
 	git add abnumber/__version__.py
 	git commit -m "Set version to $(VERSION)"
 	git push
-	make dist
-	twine upload dist/abnumber-$(VERSION)*
-	git checkout develop
-	git pull
-	git rebase origin/master
 	@echo "Create a new release version on: https://github.com/prihoda/abnumber/releases"
 
 dist:
