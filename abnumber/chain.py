@@ -264,6 +264,8 @@ class Chain:
               stop: Union[str, int, 'Position'] = None, stop_inclusive: bool = True, allow_raw: bool = False):
         """Create a slice of this chain, optionally with a replacement sequence that is placed into the same numbering
 
+        You can also slice directly using chain['111':'112A'] or chain.raw[10:20].
+
         :param replace_seq: Optional replacement sequence, needs to be the same length
         :param start: Optional slice start position (inclusive), :class:`Position` or string (e.g. '111A')
         :param stop: Optional slice stop position (inclusive), :class:`Position` or string (e.g. '112A')

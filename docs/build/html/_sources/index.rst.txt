@@ -48,11 +48,17 @@ Chain
 Alignment
 =========
 
+See the `Example Jupyter Notebook
+<https://github.com/prihoda/AbNumber/tree/master/examples/AbNumber_getting_started.ipynb>`_ for usage examples.
+
 .. autoclass:: Alignment
    :members:
 
 Position
 ========
+
+See the `Example Jupyter Notebook
+<https://github.com/prihoda/AbNumber/tree/master/examples/AbNumber_getting_started.ipynb>`_ for usage examples.
 
 .. autoclass:: Position   
    :members:

@@ -527,6 +527,7 @@ H5  Q</p>
 <dt id="abnumber.Chain.slice">
 <code class="sig-name descname">slice</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">replace_seq</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">start</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>str<span class="p">, </span>int<span class="p">, </span><a class="reference internal" href="#abnumber.Position" title="abnumber.Position">Position</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">stop</span><span class="p">:</span> <span class="n">Union<span class="p">[</span>str<span class="p">, </span>int<span class="p">, </span><a class="reference internal" href="#abnumber.Position" title="abnumber.Position">Position</a><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">None</span></em>, <em class="sig-param"><span class="n">stop_inclusive</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">True</span></em>, <em class="sig-param"><span class="n">allow_raw</span><span class="p">:</span> <span class="n">bool</span> <span class="o">=</span> <span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Chain.slice" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a slice of this chain, optionally with a replacement sequence that is placed into the same numbering</p>
+<p>You can also slice directly using chain[‘111’:’112A’] or chain.raw[10:20].</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -554,6 +555,7 @@ H5  Q</p>
 </div>
 <div class="section" id="alignment">
 <h1>Alignment<a class="headerlink" href="#alignment" title="Permalink to this headline">¶</a></h1>
+<p>See the <a class="reference external" href="https://github.com/prihoda/AbNumber/tree/master/examples/AbNumber_getting_started.ipynb">Example Jupyter Notebook</a> for usage examples.</p>
 <dl class="py class">
 <dt id="abnumber.Alignment">
 <em class="property">class </em><code class="sig-prename descclassname">abnumber.</code><code class="sig-name descname">Alignment</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">positions</span></em>, <em class="sig-param"><span class="n">residues</span></em>, <em class="sig-param"><span class="n">scheme</span></em>, <em class="sig-param"><span class="n">chain_type</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Alignment" title="Permalink to this definition">¶</a></dt>
@@ -694,6 +696,7 @@ H5  Q</p>
 </div>
 <div class="section" id="position">
 <h1>Position<a class="headerlink" href="#position" title="Permalink to this headline">¶</a></h1>
+<p>See the <a class="reference external" href="https://github.com/prihoda/AbNumber/tree/master/examples/AbNumber_getting_started.ipynb">Example Jupyter Notebook</a> for usage examples.</p>
 <dl class="py class">
 <dt id="abnumber.Position">
 <em class="property">class </em><code class="sig-prename descclassname">abnumber.</code><code class="sig-name descname">Position</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">chain_type</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">number</span><span class="p">:</span> <span class="n">int</span></em>, <em class="sig-param"><span class="n">letter</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">scheme</span><span class="p">:</span> <span class="n">str</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Position" title="Permalink to this definition">¶</a></dt>
