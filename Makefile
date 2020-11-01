@@ -21,7 +21,7 @@ dist:
 test: unit-test jupyter-test
 
 jupyter-test: examples/AbNumber_getting_started.ipynb
-	papermill $< > /dev/null
+	papermill $< - > /dev/null
 
 unit-test:
 	pytest test
