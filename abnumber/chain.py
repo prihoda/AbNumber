@@ -1,8 +1,13 @@
 from collections import OrderedDict
 from typing import Union
 
+from Bio import SeqIO
 from Bio.SubsMat import MatrixInfo
+from Bio.SeqRecord import SeqRecord
 import sys
+
+from abnumber.exceptions import ChainParseError
+
 try:
     from anarci.anarci import anarci
 except ImportError:
@@ -10,7 +15,6 @@ except ImportError:
     print('ANARCI module not available. Please install it separately or install AbNumber through Bioconda')
     print('See: https://abnumber.readthedocs.io/')
     sys.exit(1)
-from termcolor import colored as colored_fn
 from Bio.Seq import Seq
 import re
 
@@ -44,6 +48,7 @@ class Chain:
     ...
 
     Chain can also be indexed and sliced using scheme numbering:
+
     >>> chain['5']
     'Q'
     >>> for pos, aa in chain['H2':'H5']:
@@ -56,7 +61,7 @@ class Chain:
     :param sequence: Unaligned string sequence
     :param name: Optional sequence identifier
     :param scheme: Numbering scheme: FIXME available numbering schemes
-    :param allowed_species: None or one or more of: 'human', 'mouse','rat','rabbit','rhesus','pig','alpaca'
+    :param allowed_species: ``None`` to allow all species, or one or more of: ``'human', 'mouse','rat','rabbit','rhesus','pig','alpaca'``
     :param aa_dict: Create Chain object directly from dictionary of region objects (internal use)
     :param chain_type: Explicitly assign chain type, used together with aa_dict= (internal use)
     """
@@ -132,7 +137,16 @@ class Chain:
 
     def __len__(self):
         return len(self.positions)
-    
+
+    def to_fasta(self, path_or_fd, keep_tail=False):
+        return SeqIO.write(self.to_seq_record(keep_tail=keep_tail), path_or_fd, 'fasta-2line')
+
+    def to_seq_record(self, keep_tail=False):
+        if not self.name:
+            raise ValueError('Name needs to be present to convert to a SeqRecord')
+        seq = Seq(self.seq + self.tail if keep_tail else self.seq)
+        return SeqRecord(seq, id=self.name, description='')
+
     def format(self, method='wide'):
         """Format sequence to string
 
@@ -294,7 +308,7 @@ class Chain:
         """Graft CDRs from this Chain onto another chain
 
         :param other: Chain to graft CDRs into
-        :param name: Name of new Chain
+        :param name: Name of new Chain. If not provided, use name of this chain.
         :return: Chain with CDRs grafted from this chain and frameworks from the given chain
         """
         assert self.scheme == other.scheme, \
@@ -311,7 +325,7 @@ class Chain:
             else:
                 grafted_dict.update(other_dict)
 
-        return Chain(sequence=None, aa_dict=grafted_dict, name=name, chain_type=self.chain_type, scheme=self.scheme)
+        return Chain(sequence=None, aa_dict=grafted_dict, name=name or self.name, chain_type=self.chain_type, scheme=self.scheme)
 
     def parse_position(self, position: Union[int, str, 'Position'], allow_raw=False):
         """Create :class:`Position` key object from string
@@ -474,7 +488,7 @@ class Alignment:
         self._zipped = list(zip(self.positions, self.residues))
 
     def __repr__(self):
-        return self.format(colored=False)
+        return self.format()
 
     def __iter__(self):
         yield from self._zipped.__iter__()
@@ -537,12 +551,11 @@ class Alignment:
             return position
         raise IndexError(f'Invalid position key, expected Position or string, got {type(position)}: "{position}"')
 
-    def format(self, mark_identity=True, mark_cdrs=True, colored=False):
+    def format(self, mark_identity=True, mark_cdrs=True):
         """Format alignment to string
 
         :param mark_identity: Add BLAST style middle line showing identity (``|``), similar residue (``+``) or different residue (``.``)
         :param mark_cdrs: Add line highlighting CDR regions using ``^``
-        :param colored: Highlight mutations using shell colors
         :return: formatted string
         """
         seq1 = ''
@@ -551,15 +564,8 @@ class Alignment:
         cdrs = ''
         # TODO support multiple sequence alignment
         for pos, (a, b) in self:
-            if not colored or a == b:
-                seq1 += a
-                seq2 += b
-            elif is_similar_residue(a, b):
-                seq1 += colored_fn(a, 'white', 'on_yellow', attrs=['bold'])
-                seq2 += colored_fn(b, 'white', 'on_yellow', attrs=['bold'])
-            else:
-                seq1 += colored_fn(a, 'white', 'on_red', attrs=['bold'])
-                seq2 += colored_fn(b, 'white', 'on_red', attrs=['bold'])
+            seq1 += a
+            seq2 += b
 
             if mark_identity:
                 identity += '|' if a == b else ('+' if is_similar_residue(a, b) else '.')
@@ -568,7 +574,7 @@ class Alignment:
         return seq1 + (('\n' + identity) if mark_identity else '') + '\n' + seq2 + (
             ('\n' + cdrs) if mark_cdrs else '')
 
-    def print(self, mark_identity=True, mark_cdrs=True, colored=False):
+    def print(self, mark_identity=True, mark_cdrs=True):
         """Print string representation of alignment created using :meth:`Alignment.format`
 
         >>> alignment.print()
@@ -582,9 +588,8 @@ class Alignment:
 
         :param mark_identity: Add BLAST style middle line showing identity (``|``), similar residue (``+``) or different residue (``.``)
         :param mark_cdrs: Add line highlighting CDR regions using ``^``
-        :param colored: Highlight mutations using shell colors
         """
-        print(self.format(mark_identity=mark_identity, mark_cdrs=mark_cdrs, colored=colored))
+        print(self.format(mark_identity=mark_identity, mark_cdrs=mark_cdrs))
 
     def has_mutation(self):
         """Check if there is a mutation in the alignment or not"""
@@ -706,7 +711,28 @@ class Position:
         return f'{self.chain_type_prefix()}{self.number}{self.letter} ({self.scheme})'
 
     def __str__(self):
-        return f'{self.chain_type_prefix()}{self.number}{self.letter}'
+        return self.format()
+
+    def format(self, region=False, rjust=False, ljust=False, fillchar=' '):
+        formatted = f'{self.chain_type_prefix()}{self.number}{self.letter}'
+        if rjust:
+            formatted = formatted.rjust(4, fillchar)
+        if ljust:
+            formatted = formatted.ljust(4, fillchar)
+        if region:
+            region = self.get_region()
+            if rjust:
+                region = region.rjust(4, fillchar)
+            if ljust:
+                region = region.ljust(4, fillchar)
+            formatted = f'{region} {formatted}'
+        return formatted
+
+    def rjust(self, width, fillchar=' '):
+        return self.format()
+
+    def ljust(self, width, fillchar=' '):
+        return self.format().ljust(width, fillchar)
 
     def __hash__(self):
         return self.__repr__().__hash__()
@@ -781,7 +807,7 @@ def _anarci_align(sequence, scheme, allowed_species):
     ali = all_ali[0]
     hits = all_hits[0]
     if numbered is None:
-        raise ValueError(f'No alignment found for sequence: "{sequence}"')
+        raise ChainParseError(f'Variable chain sequence not recognized: "{sequence}"')
     if len(numbered) != 1:
         raise NotImplementedError(f'Unsupported: Multiple ANARCI domains found in sequence: "{sequence}"')
     positions, start, end = numbered[0]

@@ -26,7 +26,6 @@ setup(
     include_package_data=True,
     url='https://github.com/prihoda/abnumber',
     install_requires=[
-        "termcolor",
         "biopython",
         # ANARCI dependency specified through Bioconda
     ],

@@ -1,0 +1,2 @@
+class ChainParseError(Exception):
+    pass
