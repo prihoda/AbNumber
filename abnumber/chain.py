@@ -336,16 +336,18 @@ class Chain:
         :param allow_raw: Also allow unaligned numeric (int) indexing from 0 to length of sequence - 1
         :return: new Position object
         """
-        if isinstance(position, int):
-            if not allow_raw:
-                raise IndexError("Use chain.raw[i] for raw numeric indexing or pass allow_raw=True. "
-                                 "For named position indexing, use string (e.g. chain['111A'] or chain['H111A'])")
-            return list(self.positions.keys())[position]
         if isinstance(position, str):
             return Position.from_string(position, chain_type=self.chain_type, scheme=self.scheme)
         if isinstance(position, Position):
             return position
-        raise IndexError(f'Invalid position key, expected Position or string, got {type(position)}: "{position}"')
+        try:
+            position = int(position)
+        except TypeError:
+            raise IndexError(f'Invalid position key, expected Position, string or integer, got {type(position)}: "{position}"')
+        if not allow_raw:
+            raise IndexError("Use chain.raw[i] for raw numeric indexing or pass allow_raw=True. "
+                             "For named position indexing, use string (e.g. chain['111A'] or chain['H111A'])")
+        return list(self.positions.keys())[position]
 
     @property
     def raw(self):
@@ -542,16 +544,18 @@ class Alignment:
         :param allow_raw: Also allow unaligned numeric (int) indexing from 0 to length of sequence - 1
         :return: new Position object
         """
-        if isinstance(position, int):
-            if not allow_raw:
-                raise IndexError("Use chain.raw[i] for raw numeric indexing or pass allow_raw=True. "
-                                 "For named position indexing, use string (e.g. chain['111A'] or chain['H111A'])")
-            return self.positions[position]
         if isinstance(position, str):
             return Position.from_string(position, chain_type=self.chain_type, scheme=self.scheme)
         if isinstance(position, Position):
             return position
-        raise IndexError(f'Invalid position key, expected Position or string, got {type(position)}: "{position}"')
+        try:
+            position = int(position)
+        except TypeError:
+            raise IndexError(f'Invalid position key, expected Position, string or integer, got {type(position)}: "{position}"')
+        if not allow_raw:
+            raise IndexError("Use chain.raw[i] for raw numeric indexing or pass allow_raw=True. "
+                             "For named position indexing, use string (e.g. chain['111A'] or chain['H111A'])")
+        return self.positions[position]
 
     def format(self, mark_identity=True, mark_cdrs=True):
         """Format alignment to string
