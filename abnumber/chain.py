@@ -31,8 +31,7 @@ class Chain:
     >>>
     >>> seq = 'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSSAKTTAPSVYPLA'
     >>> chain = Chain(seq, scheme='imgt')
-    >>>
-    >>> print(chain.format())
+    >>> chain
     QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS
                              ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^
 
@@ -122,6 +121,9 @@ class Chain:
             regions_list[region][pos] = aa
 
     def __repr__(self):
+        return self.format()
+
+    def __str__(self):
         return self.seq
 
     def __iter__(self):

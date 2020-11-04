@@ -192,8 +192,7 @@
 <span class="go">&gt;&gt;&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">seq</span> <span class="o">=</span> <span class="s1">&#39;QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSSAKTTAPSVYPLA&#39;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span> <span class="o">=</span> <span class="n">Chain</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="s1">&#39;imgt&#39;</span><span class="p">)</span>
-<span class="go">&gt;&gt;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">format</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span>
 <span class="go">QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS</span>
 <span class="go">                         ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^</span>
 </pre></div>
@@ -209,22 +208,24 @@
 <span class="gp">...</span>
 </pre></div>
 </div>
-<p>Chain can also be indexed and sliced using scheme numbering:
-&gt;&gt;&gt; chain[‘5’]
-‘Q’
-&gt;&gt;&gt; for pos, aa in chain[‘H2’:’H5’]:
-&gt;&gt;&gt;     print(pos, aa)
-H2  V
-H3  Q
-H4  L
-H5  Q</p>
+<p>Chain can also be indexed and sliced using scheme numbering:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="p">[</span><span class="s1">&#39;5&#39;</span><span class="p">]</span>
+<span class="go">&#39;Q&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">pos</span><span class="p">,</span> <span class="n">aa</span> <span class="ow">in</span> <span class="n">chain</span><span class="p">[</span><span class="s1">&#39;H2&#39;</span><span class="p">:</span><span class="s1">&#39;H5&#39;</span><span class="p">]:</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="n">aa</span><span class="p">)</span>
+<span class="go">H2  V</span>
+<span class="go">H3  Q</span>
+<span class="go">H4  L</span>
+<span class="go">H5  Q</span>
+</pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>sequence</strong> – Unaligned string sequence</p></li>
 <li><p><strong>name</strong> – Optional sequence identifier</p></li>
 <li><p><strong>scheme</strong> – Numbering scheme: FIXME available numbering schemes</p></li>
-<li><p><strong>allowed_species</strong> – None or one or more of: ‘human’, ‘mouse’,’rat’,’rabbit’,’rhesus’,’pig’,’alpaca’</p></li>
+<li><p><strong>allowed_species</strong> – <code class="docutils literal notranslate"><span class="pre">None</span></code> to allow all species, or one or more of: <code class="docutils literal notranslate"><span class="pre">'human',</span> <span class="pre">'mouse','rat','rabbit','rhesus','pig','alpaca'</span></code></p></li>
 <li><p><strong>aa_dict</strong> – Create Chain object directly from dictionary of region objects (internal use)</p></li>
 <li><p><strong>chain_type</strong> – Explicitly assign chain type, used together with aa_dict= (internal use)</p></li>
 </ul>
@@ -367,7 +368,7 @@ H5  Q</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>other</strong> – Chain to graft CDRs into</p></li>
-<li><p><strong>name</strong> – Name of new Chain</p></li>
+<li><p><strong>name</strong> – Name of new Chain. If not provided, use name of this chain.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -583,14 +584,13 @@ H5  Q</p>
 </div>
 <dl class="py method">
 <dt id="abnumber.Alignment.format">
-<code class="sig-name descname">format</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mark_identity</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">mark_cdrs</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">colored</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Alignment.format" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">format</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mark_identity</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">mark_cdrs</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Alignment.format" title="Permalink to this definition">¶</a></dt>
 <dd><p>Format alignment to string</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>mark_identity</strong> – Add BLAST style middle line showing identity (<code class="docutils literal notranslate"><span class="pre">|</span></code>), similar residue (<code class="docutils literal notranslate"><span class="pre">+</span></code>) or different residue (<code class="docutils literal notranslate"><span class="pre">.</span></code>)</p></li>
 <li><p><strong>mark_cdrs</strong> – Add line highlighting CDR regions using <code class="docutils literal notranslate"><span class="pre">^</span></code></p></li>
-<li><p><strong>colored</strong> – Highlight mutations using shell colors</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -630,7 +630,7 @@ H5  Q</p>
 
 <dl class="py method">
 <dt id="abnumber.Alignment.print">
-<code class="sig-name descname">print</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mark_identity</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">mark_cdrs</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">colored</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Alignment.print" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">print</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mark_identity</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">mark_cdrs</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#abnumber.Alignment.print" title="Permalink to this definition">¶</a></dt>
 <dd><p>Print string representation of alignment created using <a class="reference internal" href="#abnumber.Alignment.format" title="abnumber.Alignment.format"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Alignment.format()</span></code></a></p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">alignment</span><span class="o">.</span><span class="n">print</span><span class="p">()</span>
 <span class="go">QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPS-RGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS</span>
@@ -647,7 +647,6 @@ H5  Q</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>mark_identity</strong> – Add BLAST style middle line showing identity (<code class="docutils literal notranslate"><span class="pre">|</span></code>), similar residue (<code class="docutils literal notranslate"><span class="pre">+</span></code>) or different residue (<code class="docutils literal notranslate"><span class="pre">.</span></code>)</p></li>
 <li><p><strong>mark_cdrs</strong> – Add line highlighting CDR regions using <code class="docutils literal notranslate"><span class="pre">^</span></code></p></li>
-<li><p><strong>colored</strong> – Highlight mutations using shell colors</p></li>
 </ul>
 </dd>
 </dl>

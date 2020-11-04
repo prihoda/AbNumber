@@ -6,4 +6,4 @@ __pycache__
 /work
 *.egg-info
 .pytest_cache
-
+.ipynb_checkpoints
