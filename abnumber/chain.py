@@ -280,7 +280,7 @@ class Chain:
               stop: Union[str, int, 'Position'] = None, stop_inclusive: bool = True, allow_raw: bool = False):
         """Create a slice of this chain, optionally with a replacement sequence that is placed into the same numbering
 
-        You can also slice directly using chain['111':'112A'] or chain.raw[10:20].
+        You can also slice directly using ``chain['111':'112A']`` or ``chain.raw[10:20]``.
 
         :param replace_seq: Optional replacement sequence, needs to be the same length
         :param start: Optional slice start position (inclusive), :class:`Position` or string (e.g. '111A')
@@ -511,7 +511,7 @@ class Alignment:
               stop_inclusive: bool = True, allow_raw: bool = False):
         """Create a slice of this alignment
 
-        You can also slice directly using alignment['111':'112A'] or alignment.raw[10:20].
+        You can also slice directly using ``alignment['111':'112A']`` or ``alignment.raw[10:20]``.
 
         :param start: Slice start position (inclusive), :class:`Position` or string (e.g. '111A')
         :param stop: Slice stop position (inclusive), :class:`Position` or string (e.g. '112A')
