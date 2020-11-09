@@ -1,11 +1,11 @@
 from collections import OrderedDict
-from typing import Union
+from typing import Union, List
 
 from Bio import SeqIO
 from Bio.SubsMat import MatrixInfo
 from Bio.SeqRecord import SeqRecord
 import sys
-
+import pandas as pd
 from abnumber.exceptions import ChainParseError
 
 try:
@@ -148,6 +148,54 @@ class Chain:
             raise ValueError('Name needs to be present to convert to a SeqRecord')
         seq = Seq(self.seq + self.tail if keep_tail else self.seq)
         return SeqRecord(seq, id=self.name, description='')
+
+    @classmethod
+    def to_anarci_csv(cls, chains: List['Chain'], path):
+        df = cls.to_dataframe(chains)
+        df.to_csv(path)
+
+    @classmethod
+    def to_dataframe(cls, chains: List['Chain']):
+        df = pd.DataFrame([chain.to_series() for chain in chains]).fillna('-')
+        df.index.name = 'Id'
+
+        # Each chain can have a different set of positions
+        # so we need to sort the columns to make sure they are in the right order
+        # this is using the correct Position sorting
+        prop_columns = [c for c in df.columns if not isinstance(c, Position)]
+        position_columns = sorted([c for c in df.columns if isinstance(c, Position)])
+        df = df[prop_columns + position_columns]
+
+        # Finally convert position columns to string
+        df.columns = df.columns.map(lambda pos: pos.format(chain_type=False))
+
+        return df
+
+    def to_series(self):
+        props = {
+            'chain_type': self.chain_type
+        }
+        return pd.Series({**props, **self.positions}, name=self.name)
+
+    @classmethod
+    def from_series(cls, series, scheme) -> 'Chain':
+        chain_type = series['chain_type']
+        position_index = [c for c in series.index if c[:1].isnumeric()]
+        aa_dict = {Position.from_string(pos, chain_type=chain_type, scheme=scheme): aa
+                   for pos, aa in series[position_index].items() if aa != '-' and not pd.isna(aa)}
+        return cls(sequence=None, aa_dict=aa_dict, name=series.name, scheme=scheme, chain_type=chain_type)
+
+    @classmethod
+    def from_anarci_csv(cls, path, scheme, as_series=False) -> Union[List['Chain'], pd.Series]:
+        df = pd.read_csv(path, index_col=0)
+        return cls.from_dataframe(df, scheme=scheme, as_series=as_series)
+
+    @classmethod
+    def from_dataframe(cls, df, scheme, as_series=False) -> Union[List['Chain'], pd.Series]:
+        chains = [cls.from_series(series, scheme=scheme) for i, series in df.iterrows()]
+        if as_series:
+            return pd.Series(chains, index=[c.name for c in chains])
+        return chains
 
     def format(self, method='wide'):
         """Format sequence to string
@@ -697,8 +745,6 @@ class RawAlignmentAccessor:
         return self.alignment[pos]
 
 
-
-
 class Position:
     """Numbered position using a given numbering scheme
 
@@ -719,12 +765,14 @@ class Position:
     def __str__(self):
         return self.format()
 
-    def format(self, region=False, rjust=False, ljust=False, fillchar=' '):
-        formatted = f'{self.chain_type_prefix()}{self.number}{self.letter}'
+    def format(self, chain_type=True, region=False, rjust=False, ljust=False, fillchar=' '):
+        formatted = f'{self.number}{self.letter}'
+        if chain_type:
+            formatted = f'{self.chain_type_prefix()}{formatted}'
         if rjust:
-            formatted = formatted.rjust(4, fillchar)
+            formatted = formatted.rjust(4+int(chain_type), fillchar)
         if ljust:
-            formatted = formatted.ljust(4, fillchar)
+            formatted = formatted.ljust(4+int(chain_type), fillchar)
         if region:
             region = self.get_region()
             if rjust:
@@ -753,6 +801,8 @@ class Position:
         return self == other or self < other
 
     def __lt__(self, other):
+        if not isinstance(other, Position):
+            raise TypeError(f'Cannot compare Position object with {type(other)}: {other}')
         assert self.chain_type == other.chain_type, f'Positions do not come from the same chain: {self}, {other}'
         assert self.scheme == other.scheme, 'Comparing positions in different schemes is not implemented'
         return self._sort_key() < other._sort_key()

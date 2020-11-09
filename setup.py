@@ -27,6 +27,7 @@ setup(
     url='https://github.com/prihoda/abnumber',
     install_requires=[
         "biopython",
+        "pandas"
         # ANARCI dependency specified through Bioconda
     ],
 )
