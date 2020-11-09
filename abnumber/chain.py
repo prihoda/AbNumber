@@ -803,7 +803,7 @@ class Position:
     def __lt__(self, other):
         if not isinstance(other, Position):
             raise TypeError(f'Cannot compare Position object with {type(other)}: {other}')
-        assert self.chain_type == other.chain_type, f'Positions do not come from the same chain: {self}, {other}'
+        assert self.is_heavy_chain() == other.is_heavy_chain(), f'Positions do not come from the same chain: {self}, {other}'
         assert self.scheme == other.scheme, 'Comparing positions in different schemes is not implemented'
         return self._sort_key() < other._sort_key()
 
@@ -849,6 +849,12 @@ class Position:
             raise IndexError(f'Use no prefix or "{expected_chain_prefix}" prefix for "{chain_type}" chain. '
                              f'Got: "{chain_prefix}".')
         return cls(chain_type=chain_type, number=number, letter=letter, scheme=scheme)
+
+    def is_heavy_chain(self):
+        return self.chain_type == 'H'
+
+    def is_light_chain(self):
+        return self.chain_type in 'KL'
 
 
 def _validate_chain_type(chain_type):
