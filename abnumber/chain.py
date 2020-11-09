@@ -142,7 +142,11 @@ class Chain:
 
     @classmethod
     def to_fasta(cls, chains, path_or_fd, keep_tail=False):
-        return SeqIO.write((chain.to_seq_record(keep_tail=keep_tail) for chain in chains), path_or_fd, 'fasta-2line')
+        if isinstance(chains, Chain):
+            records = chains.to_seq_record(keep_tail=keep_tail)
+        else:
+            records = (chain.to_seq_record(keep_tail=keep_tail) for chain in chains)
+        return SeqIO.write(records, path_or_fd, 'fasta-2line')
 
     def to_seq_record(self, keep_tail=False):
         if not self.name:
@@ -396,6 +400,8 @@ class Chain:
         if not allow_raw:
             raise IndexError("Use chain.raw[i] for raw numeric indexing or pass allow_raw=True. "
                              "For named position indexing, use string (e.g. chain['111A'] or chain['H111A'])")
+        if position >= len(self.positions):
+            position = len(self.positions) - 1
         return list(self.positions.keys())[position]
 
     @property
@@ -604,6 +610,8 @@ class Alignment:
         if not allow_raw:
             raise IndexError("Use chain.raw[i] for raw numeric indexing or pass allow_raw=True. "
                              "For named position indexing, use string (e.g. chain['111A'] or chain['H111A'])")
+        if position >= len(self.positions):
+            position = len(self.positions) - 1
         return self.positions[position]
 
     def format(self, mark_identity=True, mark_cdrs=True):
