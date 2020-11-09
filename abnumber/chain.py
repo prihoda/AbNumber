@@ -140,8 +140,9 @@ class Chain:
     def __len__(self):
         return len(self.positions)
 
-    def to_fasta(self, path_or_fd, keep_tail=False):
-        return SeqIO.write(self.to_seq_record(keep_tail=keep_tail), path_or_fd, 'fasta-2line')
+    @classmethod
+    def to_fasta(cls, chains, path_or_fd, keep_tail=False):
+        return SeqIO.write((chain.to_seq_record(keep_tail=keep_tail) for chain in chains), path_or_fd, 'fasta-2line')
 
     def to_seq_record(self, keep_tail=False):
         if not self.name:
