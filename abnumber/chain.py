@@ -400,7 +400,7 @@ class Chain:
         if not allow_raw:
             raise IndexError("Use chain.raw[i] for raw numeric indexing or pass allow_raw=True. "
                              "For named position indexing, use string (e.g. chain['111A'] or chain['H111A'])")
-        if position > len(self.positions):
+        if position >= len(self.positions):
             return None
         return list(self.positions.keys())[position]
 
@@ -610,7 +610,7 @@ class Alignment:
         if not allow_raw:
             raise IndexError("Use chain.raw[i] for raw numeric indexing or pass allow_raw=True. "
                              "For named position indexing, use string (e.g. chain['111A'] or chain['H111A'])")
-        if position > len(self.positions):
+        if position >= len(self.positions):
             return None
         return self.positions[position]
 
