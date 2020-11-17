@@ -195,7 +195,7 @@ class Chain:
     @classmethod
     def from_series(cls, series, scheme) -> 'Chain':
         chain_type = series['chain_type']
-        species = series['species']
+        species = series.get('species')
         position_index = [c for c in series.index if c[:1].isnumeric()]
         aa_dict = {Position.from_string(pos, chain_type=chain_type, scheme=scheme): aa
                    for pos, aa in series[position_index].items() if aa != '-' and not pd.isna(aa)}
