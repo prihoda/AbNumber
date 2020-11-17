@@ -187,17 +187,19 @@ class Chain:
 
     def to_series(self):
         props = {
-            'chain_type': self.chain_type
+            'chain_type': self.chain_type,
+            'species': self.species
         }
         return pd.Series({**props, **self.positions}, name=self.name)
 
     @classmethod
     def from_series(cls, series, scheme) -> 'Chain':
         chain_type = series['chain_type']
+        species = series['species']
         position_index = [c for c in series.index if c[:1].isnumeric()]
         aa_dict = {Position.from_string(pos, chain_type=chain_type, scheme=scheme): aa
                    for pos, aa in series[position_index].items() if aa != '-' and not pd.isna(aa)}
-        return cls(sequence=None, aa_dict=aa_dict, name=series.name, scheme=scheme, chain_type=chain_type)
+        return cls(sequence=None, aa_dict=aa_dict, name=series.name, scheme=scheme, chain_type=chain_type, species=species)
 
     @classmethod
     def from_anarci_csv(cls, path, scheme, as_series=False) -> Union[List['Chain'], pd.Series]:
@@ -371,7 +373,7 @@ class Chain:
                 break
             aa_dict[pos] = replace_seq[i] if replace_seq is not None else aa
 
-        return Chain(sequence=None, aa_dict=aa_dict, name=self.name, scheme=self.scheme, chain_type=self.chain_type)
+        return Chain(sequence=None, aa_dict=aa_dict, name=self.name, scheme=self.scheme, chain_type=self.chain_type, species=self.species)
 
     def graft_cdrs_onto(self, other: 'Chain', name: str = None) -> 'Chain':
         """Graft CDRs from this Chain onto another chain
