@@ -2,11 +2,11 @@ from collections import OrderedDict
 from typing import Union, List
 
 from Bio import SeqIO
-from Bio.SubsMat import MatrixInfo
 from Bio.SeqRecord import SeqRecord
 import sys
 import pandas as pd
 from abnumber.exceptions import ChainParseError
+import numpy as np
 
 try:
     from anarci.anarci import anarci
@@ -62,12 +62,11 @@ class Chain:
     :param scheme: Numbering scheme: FIXME available numbering schemes
     :param allowed_species: ``None`` to allow all species, or one or more of: ``'human', 'mouse','rat','rabbit','rhesus','pig','alpaca'``
     :param aa_dict: Create Chain object directly from dictionary of region objects (internal use)
-    :param chain_type: Explicitly assign chain type, used together with aa_dict= (internal use)
+    :param tail: Constant region sequence
+    :param species: Species as identified by ANARCI
     """
 
-    def __init__(self, sequence, scheme, name=None, allowed_species=None, aa_dict=None, chain_type=None, tail=None):
-
-        assert scheme in ['imgt']
+    def __init__(self, sequence, scheme, cdr_scheme=None, name=None, allowed_species=None, aa_dict=None, chain_type=None, tail=None, species=None):
 
         if aa_dict is not None:
             if sequence is not None:
@@ -80,24 +79,25 @@ class Chain:
                 raise ValueError('Do not use tail= when providing sequence=, it will be inferred automatically')
             if isinstance(sequence, Seq):
                 sequence = str(sequence)
-            aa_dict, chain_type, tail = _anarci_align(sequence, scheme=scheme, allowed_species=allowed_species)
+            aa_dict, chain_type, tail, species = _anarci_align(sequence, scheme=scheme, allowed_species=allowed_species)
 
         _validate_chain_type(chain_type)
 
-        self.name = name
-        """User-provided sequence identifier
-        """
-        self.chain_type = chain_type
+        self.name: str = name
+        """User-provided sequence identifier"""
+        self.chain_type: str = chain_type
         """Chain type as identified by ANARCI: ``H`` (heavy), ``K`` (kappa light) or ``L`` (lambda light)
         
         See also :meth:`Chain.is_heavy_chain` and :meth:`Chain.is_light_chain`.
         """
-        self.scheme = scheme
-        """Numbering scheme used to align the sequence
-        """
-        self.tail = tail
-        """Constant region sequence
-        """
+        self.scheme: str = scheme
+        """Numbering scheme used to align the sequence"""
+        self.cdr_scheme: str = cdr_scheme or scheme
+        """Numbering scheme to be used for definition of CDR regions (same as ``scheme`` by default)"""
+        self.tail: str = tail
+        """Constant region sequence"""
+        self.species: str = species
+        """Species as identified by ANARCI"""
 
         self.fw1_dict = OrderedDict()
         self.cdr1_dict = OrderedDict()
@@ -110,15 +110,24 @@ class Chain:
         self._init_from_dict(aa_dict)
 
     def _init_from_dict(self, aa_dict):
+        if self.scheme not in SUPPORTED_SCHEMES:
+            raise NotImplementedError(f'Scheme "{self.scheme}" is not supported. Available schemes: {", ".join(SUPPORTED_SCHEMES)}')
+        if self.cdr_scheme in ['aho']:
+            raise ValueError('CDR regions are not defined for AHo, '
+                             'you need to specify cdr_scheme="chothia" or another scheme for CDR extraction.')
+        # list of region start positions
+        borders = SCHEME_BORDERS[self.scheme] if self.scheme in SCHEME_BORDERS else SCHEME_BORDERS[f'{self.scheme}_{self.chain_type}']
+
         regions_list = [self.fw1_dict, self.cdr1_dict, self.fw2_dict, self.cdr2_dict, self.fw3_dict, self.cdr3_dict, self.fw4_dict]
-        region = 0
+        region_idx = 0
+
         for pos in sorted(aa_dict.keys()):
-            while pos.number >= IMGT_BORDERS[region]:
-                region += 1
-            aa = aa_dict[pos].upper()
-            # TODO validate amino acid aa
-            # TODO use Region class instead of str?
-            regions_list[region][pos] = aa
+            while pos.number >= borders[region_idx]:
+                region_idx += 1
+            aa = aa_dict[pos].upper().strip()
+            if aa in ['*', '-', None, '']:
+                continue
+            regions_list[region_idx][pos] = aa
 
     def __repr__(self):
         return self.format()
@@ -202,16 +211,16 @@ class Chain:
             return pd.Series(chains, index=[c.name for c in chains])
         return chains
 
-    def format(self, method='wide'):
+    def format(self, method='wide', **kwargs):
         """Format sequence to string
 
         :param method: use ``"wide"`` for :meth:`Chain.format_wide` or ``"tall"`` for :meth:`Chain.format_tall()`
         :return: formatted string
         """
         if method == 'wide':
-            return self.format_wide()
+            return self.format_wide(**kwargs)
         elif method == 'tall':
-            return self.format_tall()
+            return self.format_tall(**kwargs)
         raise ValueError(f'Use method="wide" or method="tall", unknown method: "{method}"')
     
     def print(self, method='wide'):
@@ -227,18 +236,23 @@ class Chain:
         """
         print(self.format(method=method))
 
-    def format_tall(self):
+    def format_tall(self, columns=5):
         """Create string with one position per line, showing position numbers and amino acids
 
         :return: formatted string
         """
-        seq = []
-        for region, aa_dict in self.regions.items():
-            for pos, aa in aa_dict.items():
-                seq.append(f'{region: >4} {str(pos): <5} {aa}')
-        return '\n'.join(seq)
+        height = int(np.ceil(len(self) / columns))
+        rows = [''] * height
+        for column, start in enumerate(range(0, len(self), height)):
+            chain_slice = self.raw[start:start+height]
+            for row, (pos, aa) in enumerate(chain_slice):
+                rows[row] = rows[row].ljust(column * 15)
+                pos_format = (pos.get_region() + ' ' if pos.is_in_cdr() else '') + pos.format()
+                rows[row] += f'{pos_format.rjust(9)} {aa}'
 
-    def print_tall(self):
+        return '\n'.join(rows)
+
+    def print_tall(self, columns=5):
         """Print string representation using :meth:`Chain.format_tall`
 
         >>> chain.print_tall()
@@ -251,7 +265,7 @@ class Chain:
         fw1 H7    S
         ...
         """
-        print(self.format_tall())
+        print(self.format_tall(columns=columns))
 
     def format_wide(self):
         """Create string with sequence on first line and CDR regions higlighted with `^` on second line
@@ -374,8 +388,7 @@ class Chain:
         grafted_dict = {}
         for (self_region, self_dict), (other_region, other_dict) in zip(self.regions.items(), other.regions.items()):
             assert self_region == other_region
-            # TODO use Region class instead of str?
-            if self_region.upper().startswith('CDR'):
+            if self_region.lower().startswith('cdr'):
                 grafted_dict.update(self_dict)
             else:
                 grafted_dict.update(other_dict)
@@ -427,8 +440,11 @@ class Chain:
 
     @property
     def regions(self):
-        """Dictionary of region dictionaries (:class:`Position` -> Amino acid)
-        :return: Dictionary of Region name -> dictionary of (:class:`Position` -> Amino acid)
+        """Dictionary of region dictionaries
+
+        Region is an uppercase string, one of: ``"FW1", "CDR1", "FW2", "CDR2", "FW3", "CDR3", "FW4"``
+
+        :return: Dictionary of Region name -> Dictionary of (:class:`Position` -> Amino acid)
         """
         return OrderedDict(
             fw1=self.fw1_dict,
@@ -564,7 +580,7 @@ class Alignment:
         raw_pos = self.positions.index(pos)
         return self.residues[raw_pos]
 
-    def slice(self, start: Union[str, 'Position'] = None, stop: Union[str, 'Position'] = None,
+    def slice(self, start: Union[str, int, 'Position'] = None, stop: Union[str, int, 'Position'] = None,
               stop_inclusive: bool = True, allow_raw: bool = False):
         """Create a slice of this alignment
 
@@ -621,21 +637,18 @@ class Alignment:
         :param mark_cdrs: Add line highlighting CDR regions using ``^``
         :return: formatted string
         """
-        seq1 = ''
-        identity = ''
-        seq2 = ''
-        cdrs = ''
-        # TODO support multiple sequence alignment
-        for pos, (a, b) in self:
-            seq1 += a
-            seq2 += b
 
-            if mark_identity:
-                identity += '|' if a == b else ('+' if is_similar_residue(a, b) else '.')
-            if mark_cdrs:
-                cdrs += '^' if pos.is_in_cdr() else ' '
-        return seq1 + (('\n' + identity) if mark_identity else '') + '\n' + seq2 + (
-            ('\n' + cdrs) if mark_cdrs else '')
+        def _identity_symbol(a, b):
+            return '|' if a == b else ('+' if is_similar_residue(a, b) else '.')
+
+        lines = []
+        for i in range(len(self.residues[0])):
+            if mark_identity and i != 0:
+                lines.append(''.join(_identity_symbol(aas[i], aas[i-1]) for pos, aas in self))
+            lines.append(''.join(aas[i] for pos, aas in self))
+        if mark_cdrs:
+            lines.append(''.join('^' if pos.is_in_cdr() else ' ' for pos, aas in self))
+        return '\n'.join(lines)
 
     def print(self, mark_identity=True, mark_cdrs=True):
         """Print string representation of alignment created using :meth:`Alignment.format`
@@ -678,61 +691,6 @@ class Alignment:
         :return: Raw alignment accessor that can be sliced or indexed to produce a new :class:`Alignment` object
         """
         return RawAlignmentAccessor(self)
-
-    #
-    # def has_same_cdr_positions(self, other):
-    #     """Check if this chain has the same set of CDR position numbers
-    #
-    #     Used to filter pairs of chains that could be functionally related
-    #     """
-    #     if len(self.cdr1_dict) != len(other.cdr1) or self.cdr1_dict.keys() != other.cdr1.keys():
-    #         return False
-    #     if len(self.cdr2_dict) != len(other.cdr2) or self.cdr2_dict.keys() != other.cdr2.keys():
-    #         return False
-    #     if len(self.cdr3_dict) != len(other.cdr3) or self.cdr3_dict.keys() != other.cdr3.keys():
-    #         return False
-    #     return True
-    #
-    # def get_fw1_matches(self, other):
-    #     """Get number of identical residues at corresponding positions in Framework 1 region"""
-    #     return sum(aa == other.fw1.get(pos) for pos, aa in self.fw1_dict.items())
-    #
-    # def get_cdr1_matches(self, other):
-    #     """Get number of identical residues at corresponding positions in the CDR 1 region"""
-    #     return sum(aa == other.cdr1.get(pos) for pos, aa in self.cdr1_dict.items())
-    #
-    # def get_fw2_matches(self, other):
-    #     """Get number of identical residues at corresponding positions in the Framework 2 region"""
-    #     return sum(aa == other.fw2.get(pos) for pos, aa in self.fw2_dict.items())
-    #
-    # def get_cdr2_matches(self, other):
-    #     """Get number of identical residues at corresponding positions in the Framework 4 region"""
-    #     return sum(aa == other.cdr2.get(pos) for pos, aa in self.cdr2_dict.items())
-    #
-    # def get_fw3_matches(self, other):
-    #     """Get number of identical residues at corresponding positions in the Framework 3 region"""
-    #     return sum(aa == other.fw3.get(pos) for pos, aa in self.fw3_dict.items())
-    #
-    # def get_cdr3_matches(self, other):
-    #     """Get number of identical residues at corresponding positions in the Framework 4 region"""
-    #     return sum(aa == other.cdr3.get(pos) for pos, aa in self.cdr3_dict.items())
-    #
-    # def get_fw4_matches(self, other):
-    #     """Get number of identical residues at corresponding positions in the Framework 4 region"""
-    #     return sum(aa == other.fw4.get(pos) for pos, aa in self.fw4_dict.items())
-    #
-    # def get_fw_matches(self, other):
-    #     """Get number of identical residues at corresponding positions in the Framework regions"""
-    #     return self.get_fw1_matches(other) + self.get_fw2_matches(other) + self.get_fw3_matches(
-    #         other) + self.get_fw4_matches(other)
-    #
-    # def get_cdr_matches(self, other):
-    #     """Get number of identical residues at corresponding positions in all the CDR regions"""
-    #     return self.get_cdr1_matches(other) + self.get_cdr2_matches(other) + self.get_cdr3_matches(other)
-    #
-    # def get_matches(self, other):
-    #     """Get number of identical residues at corresponding positions in the full variable region"""
-    #     return self.get_fw_matches(other) + self.get_cdr_matches(other)
 
 
 class RawAlignmentAccessor:
@@ -778,24 +736,14 @@ class Position:
         formatted = f'{self.number}{self.letter}'
         if chain_type:
             formatted = f'{self.chain_type_prefix()}{formatted}'
-        if rjust:
-            formatted = formatted.rjust(4+int(chain_type), fillchar)
-        if ljust:
-            formatted = formatted.ljust(4+int(chain_type), fillchar)
         if region:
-            region = self.get_region()
-            if rjust:
-                region = region.rjust(4, fillchar)
-            if ljust:
-                region = region.ljust(4, fillchar)
-            formatted = f'{region} {formatted}'
+            formatted = f'{self.get_region()} {formatted}'
+        just = 4 + 1*int(chain_type) + 5*int(region)
+        if rjust:
+            formatted = formatted.rjust(just, fillchar)
+        if ljust:
+            formatted = formatted.ljust(just, fillchar)
         return formatted
-
-    def rjust(self, width, fillchar=' '):
-        return self.format()
-
-    def ljust(self, width, fillchar=' '):
-        return self.format().ljust(width, fillchar)
 
     def __hash__(self):
         return self.__repr__().__hash__()
@@ -824,21 +772,28 @@ class Position:
         raise NotImplementedError(f'Unknown chain type "{self.chain_type}"')
 
     def _sort_key(self):
+        letter_ord = ord(self.letter) if self.letter else 0
         if self.scheme == 'imgt':
-            letter_ord = ord(self.letter) if self.letter else 0
             if self.number == 112:
                 # position 112 is sorted in reverse
                 letter_ord = -letter_ord
+        elif self.scheme in ['chothia', 'kabat', 'aho']:
+            # all letters are sorted alphabetically for these schemes
+            pass
         else:
             raise NotImplementedError(f'Cannot compare positions of scheme: {self.scheme}')
         return self.number, letter_ord
 
     def get_region(self):
-        """Get string name of this position's region"""
-        if self.scheme == 'imgt':
-            return IMGT_POS_DICT[self.number]
+        """Get string name of this position's region
+
+        :return: uppercase string, one of: ``"FW1", "CDR1", "FW2", "CDR2", "FW3", "CDR3", "FW4"``
+        """
+        if self.scheme in SCHEME_POSITION_TO_REGION:
+            regions = SCHEME_POSITION_TO_REGION[self.scheme]
         else:
-            raise NotImplementedError(f'Not supported scheme: {self.scheme}')
+            regions = SCHEME_POSITION_TO_REGION[f'{self.scheme}_{self.chain_type}']
+        return regions[self.number]
 
     def is_in_cdr(self):
         """Check if given position is found in the CDR regions"""
@@ -883,33 +838,55 @@ def _anarci_align(sequence, scheme, allowed_species):
         raise NotImplementedError(f'Unsupported: Multiple ANARCI domains found in sequence: "{sequence}"')
     positions, start, end = numbered[0]
     chain_type = ali[0]['chain_type']
+    species = ali[0]['species']
     aa_dict = {Position(chain_type=chain_type, number=num, letter=letter, scheme=scheme): aa for (num, letter), aa in
                positions if aa != '-'}
     tail = sequence[end+1:]
-    return aa_dict, chain_type, tail
+    return aa_dict, chain_type, tail, species
 
 
-def is_similar_residue(a, b, matrix=MatrixInfo.blosum62):
+# Based on positive score in Blosum62
+SIMILAR_PAIRS = {'AA', 'AS', 'CC', 'DD', 'DE', 'DN', 'ED', 'EE', 'EK', 'EQ', 'FF', 'FW', 'FY', 'GG', 'HH', 'HN', 'HY',
+                 'II', 'IL', 'IM', 'IV', 'KE', 'KK', 'KQ', 'KR', 'LI', 'LL', 'LM', 'LV', 'MI', 'ML', 'MM', 'MV', 'ND',
+                 'NH', 'NN', 'NS', 'PP', 'QE', 'QK', 'QQ', 'QR', 'RK', 'RQ', 'RR', 'SA', 'SN', 'SS', 'ST', 'TS', 'TT',
+                 'VI', 'VL', 'VM', 'VV', 'WF', 'WW', 'WY', 'YF', 'YH', 'YW', 'YY'}
+
+
+def is_similar_residue(a, b):
     if a == '-' or b == '-':
         return a == b
-    pair = (a, b) if (a, b) in matrix else (b, a)
-    return matrix[pair] > 0
+    return a+b in SIMILAR_PAIRS
 
 
-IMGT_BORDERS = [27, 39, 56, 66, 105, 118, 129]
+SUPPORTED_SCHEMES = ['imgt', 'aho', 'chothia', 'kabat']
 
-IMGT_FW1 = list(range(1, IMGT_BORDERS[0]))
-IMGT_CDR1 = list(range(IMGT_BORDERS[0], IMGT_BORDERS[1]))
-IMGT_FW2 = list(range(IMGT_BORDERS[1], IMGT_BORDERS[2]))
-IMGT_CDR2 = list(range(IMGT_BORDERS[2], IMGT_BORDERS[3]))
-IMGT_FW3 = list(range(IMGT_BORDERS[3], IMGT_BORDERS[4]))
-IMGT_CDR3 = list(range(IMGT_BORDERS[4], IMGT_BORDERS[5]))
-IMGT_FW4 = list(range(IMGT_BORDERS[5], IMGT_BORDERS[6]))
+SCHEME_BORDERS = {
+               # Start coordinates
+               # CDR1, FW2, CDR2, FW3, CDR3, FW4
+         'imgt': [27,  39,  56,   66,  105,  118, 129],
+    'chothia_H': [26,  33,  52,   57,  95,   103, 114],
+    'chothia_K': [24,  35,  50,   57,  89,    98, 108],
+    'chothia_L': [24,  35,  50,   57,  89,    98, 108],
+      'kabat_H': [31,  36,  50,   66,  95,   103, 114],
+      'kabat_K': [24,  35,  50,   57,  89,    98, 108],
+      'kabat_L': [24,  35,  50,   57,  89,    98, 108],
+}
 
-IMGT_CDR = IMGT_CDR1 + IMGT_CDR2 + IMGT_CDR3
-IMGT_FW = IMGT_FW1 + IMGT_FW2 + IMGT_FW3 + IMGT_FW4
+# { scheme -> { region -> list of position numbers } }
+SCHEME_REGIONS = {
+    scheme: {
+        'FW1': list(range(1, borders[0])),
+        'CDR1': list(range(borders[0], borders[1])),
+        'FW2': list(range(borders[1], borders[2])),
+        'CDR2': list(range(borders[2], borders[3])),
+        'FW3': list(range(borders[3], borders[4])),
+        'CDR3': list(range(borders[4], borders[5])),
+        'FW4': list(range(borders[5], borders[6])),
+    } for scheme, borders in SCHEME_BORDERS.items()
+}
 
-IMGT_CDR_DICT = {'cdr1': IMGT_CDR1, 'cdr2': IMGT_CDR2, 'cdr3': IMGT_CDR3}
-IMGT_FW_DICT = {'fw1': IMGT_FW1, 'fw2': IMGT_FW2, 'fw3': IMGT_FW3, 'fw4': IMGT_FW4}
-IMGT_REGION_DICT = {**IMGT_CDR_DICT, **IMGT_FW_DICT}
-IMGT_POS_DICT = {pos_num: region for region, positions in IMGT_REGION_DICT.items() for pos_num in positions}
+# { scheme -> { position number -> region } }
+SCHEME_POSITION_TO_REGION = {
+    scheme: {pos_num: region for region, positions in regions.items() for pos_num in positions} \
+    for scheme, regions in SCHEME_REGIONS.items()
+}
