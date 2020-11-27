@@ -1,6 +1,6 @@
 from collections import OrderedDict
-from typing import Union, List
-
+from typing import Union, List, Generator
+import copy
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 import sys
@@ -59,14 +59,16 @@ class Chain:
 
     :param sequence: Unaligned string sequence
     :param name: Optional sequence identifier
-    :param scheme: Numbering scheme: FIXME available numbering schemes
+    :param scheme: Numbering scheme: One of ``imgt``, ``chothia``, ``kabat``, ``aho``
+    :param cdr_definition: Numbering scheme to be used for definition of CDR regions. Same as ``scheme`` by default. Required for ``aho``.
+                           One of ``imgt``, ``chothia``, ``kabat``, ``north``.
     :param allowed_species: ``None`` to allow all species, or one or more of: ``'human', 'mouse','rat','rabbit','rhesus','pig','alpaca'``
     :param aa_dict: Create Chain object directly from dictionary of region objects (internal use)
     :param tail: Constant region sequence
     :param species: Species as identified by ANARCI
     """
 
-    def __init__(self, sequence, scheme, cdr_scheme=None, name=None, allowed_species=None, aa_dict=None, chain_type=None, tail=None, species=None):
+    def __init__(self, sequence, scheme, cdr_definition=None, name=None, allowed_species=None, aa_dict=None, chain_type=None, tail=None, species=None):
 
         if aa_dict is not None:
             if sequence is not None:
@@ -92,7 +94,7 @@ class Chain:
         """
         self.scheme: str = scheme
         """Numbering scheme used to align the sequence"""
-        self.cdr_scheme: str = cdr_scheme or scheme
+        self.cdr_definition: str = cdr_definition or scheme
         """Numbering scheme to be used for definition of CDR regions (same as ``scheme`` by default)"""
         self.tail: str = tail
         """Constant region sequence"""
@@ -107,26 +109,53 @@ class Chain:
         self.cdr3_dict = OrderedDict()
         self.fw4_dict = OrderedDict()
 
-        self._init_from_dict(aa_dict)
+        self._init_from_dict(aa_dict, allowed_species=allowed_species)
 
-    def _init_from_dict(self, aa_dict):
+    def _init_from_dict(self, aa_dict, allowed_species):
         if self.scheme not in SUPPORTED_SCHEMES:
             raise NotImplementedError(f'Scheme "{self.scheme}" is not supported. Available schemes: {", ".join(SUPPORTED_SCHEMES)}')
-        if self.cdr_scheme in ['aho']:
+        if self.cdr_definition in ['aho']:
             raise ValueError('CDR regions are not defined for AHo, '
-                             'you need to specify cdr_scheme="chothia" or another scheme for CDR extraction.')
+                             'you need to specify cdr_definition="chothia" or another scheme for CDR extraction.')
+        if self.cdr_definition not in SUPPORTED_CDR_DEFINITIONS:
+            raise NotImplementedError(f'CDR definition "{self.scheme}" is not supported. Available definitions: {", ".join(SUPPORTED_SCHEMES)}')
         # list of region start positions
-        borders = SCHEME_BORDERS[self.scheme] if self.scheme in SCHEME_BORDERS else SCHEME_BORDERS[f'{self.scheme}_{self.chain_type}']
+        borders = SCHEME_BORDERS[self.cdr_definition] if self.cdr_definition in SCHEME_BORDERS else SCHEME_BORDERS[f'{self.cdr_definition}_{self.chain_type}']
 
         regions_list = [self.fw1_dict, self.cdr1_dict, self.fw2_dict, self.cdr2_dict, self.fw3_dict, self.cdr3_dict, self.fw4_dict]
         region_idx = 0
 
-        for pos in sorted(aa_dict.keys()):
-            while pos.number >= borders[region_idx]:
-                region_idx += 1
-            aa = aa_dict[pos].upper().strip()
-            if aa in ['*', '-', None, '']:
+        sorted_positions = sorted(aa_dict.keys())
+
+        cdr_definition_ready = True
+        for pos in sorted_positions:
+            assert pos.scheme == self.scheme, f'Schemes of provided position ({pos.scheme}) does not match Chain scheme ({self.scheme})'
+            if pos.cdr_definition != self.cdr_definition:
+                cdr_definition_ready = False
+
+        if cdr_definition_ready:
+            combined_aa_dict = aa_dict
+        else:
+            seq = ''.join(aa_dict[pos] for pos in sorted_positions)
+            renumbered_aa_dict = _anarci_align(
+                seq,
+                scheme=self.cdr_definition if self.cdr_definition != 'north' else 'chothia',
+                allowed_species=allowed_species
+            )[0]
+            cdr_definition_positions = [pos.number for pos in sorted(renumbered_aa_dict.keys())]
+            combined_aa_dict = {}
+            for orig_pos, cdr_definition_position in zip(sorted_positions, cdr_definition_positions):
+                aa = aa_dict[orig_pos]
+                pos = orig_pos.copy()
+                pos.set_cdr_definition(self.cdr_definition, cdr_definition_position)
+                combined_aa_dict[pos] = aa
+
+        for pos in sorted(combined_aa_dict.keys()):
+            aa = combined_aa_dict[pos].upper().strip()
+            if aa in [None, '*', '-', '', '.']:
                 continue
+            while pos.cdr_definition_position >= borders[region_idx]:
+                region_idx += 1
             regions_list[region_idx][pos] = aa
 
     def __repr__(self):
@@ -143,11 +172,19 @@ class Chain:
             if item.step is not None and item.step != 1:
                 raise IndexError(f'Slicing with step != 1 is not implemented, got: {item}')
             return self.slice(start=item.start, stop=item.stop)
-        pos = self.parse_position(item)
+        pos = self._parse_position(item)
         return self.positions[pos]
 
     def __len__(self):
         return len(self.positions)
+
+    def __hash__(self):
+        return hash(self.positions)
+
+    def __eq__(self, other):
+        """Check chain equality. Only checks scheme, aligned sequence and tail sequence, ignores name, metadata and CDR definitions."""
+        assert isinstance(other, Chain), f'Can only compare Chain to another Chain, got {type(other)}: {other}'
+        return self.positions == other.positions and self.tail == other.tail
 
     @classmethod
     def to_fasta(cls, chains, path_or_fd, keep_tail=False):
@@ -156,6 +193,17 @@ class Chain:
         else:
             records = (chain.to_seq_record(keep_tail=keep_tail) for chain in chains)
         return SeqIO.write(records, path_or_fd, 'fasta-2line')
+
+    @classmethod
+    def from_fasta(cls, path_or_handle, scheme, cdr_definition=None, as_series=False, as_generator=False) -> Union[List['Chain'], pd.Series, Generator['Chain', None, None]]:
+        generator = (cls(record.seq, name=record.name, scheme=scheme, cdr_definition=cdr_definition)
+                     for record in SeqIO.parse(path_or_handle, 'fasta'))
+        if as_generator:
+            return generator
+        chains = list(generator)
+        if as_series:
+            return pd.Series(chains, index=[c.name for c in chains])
+        return chains
 
     def to_seq_record(self, keep_tail=False):
         if not self.name:
@@ -193,22 +241,23 @@ class Chain:
         return pd.Series({**props, **self.positions}, name=self.name)
 
     @classmethod
-    def from_series(cls, series, scheme) -> 'Chain':
+    def from_series(cls, series, scheme, cdr_definition=None) -> 'Chain':
         chain_type = series['chain_type']
         species = series.get('species')
         position_index = [c for c in series.index if c[:1].isnumeric()]
         aa_dict = {Position.from_string(pos, chain_type=chain_type, scheme=scheme): aa
                    for pos, aa in series[position_index].items() if aa != '-' and not pd.isna(aa)}
-        return cls(sequence=None, aa_dict=aa_dict, name=series.name, scheme=scheme, chain_type=chain_type, species=species)
+        return cls(sequence=None, aa_dict=aa_dict, name=series.name, scheme=scheme, cdr_definition=cdr_definition,
+                   chain_type=chain_type, species=species)
 
     @classmethod
-    def from_anarci_csv(cls, path, scheme, as_series=False) -> Union[List['Chain'], pd.Series]:
+    def from_anarci_csv(cls, path, scheme, cdr_definition=None, as_series=False) -> Union[List['Chain'], pd.Series]:
         df = pd.read_csv(path, index_col=0)
-        return cls.from_dataframe(df, scheme=scheme, as_series=as_series)
+        return cls.from_dataframe(df, scheme=scheme, cdr_definition=cdr_definition, as_series=as_series)
 
     @classmethod
-    def from_dataframe(cls, df, scheme, as_series=False) -> Union[List['Chain'], pd.Series]:
-        chains = [cls.from_series(series, scheme=scheme) for i, series in df.iterrows()]
+    def from_dataframe(cls, df, scheme, cdr_definition=None, as_series=False) -> Union[List['Chain'], pd.Series]:
+        chains = [cls.from_series(series, scheme=scheme, cdr_definition=cdr_definition) for i, series in df.iterrows()]
         if as_series:
             return pd.Series(chains, index=[c.name for c in chains])
         return chains
@@ -258,13 +307,13 @@ class Chain:
         """Print string representation using :meth:`Chain.format_tall`
 
         >>> chain.print_tall()
-        fw1 H1    Q
-        fw1 H2    V
-        fw1 H3    Q
-        fw1 H4    L
-        fw1 H5    Q
-        fw1 H6    Q
-        fw1 H7    S
+        FW1 H1    Q
+        FW1 H2    V
+        FW1 H3    Q
+        FW1 H4    L
+        FW1 H5    Q
+        FW1 H6    Q
+        FW1 H7    S
         ...
         """
         print(self.format_tall(columns=columns))
@@ -290,7 +339,7 @@ class Chain:
         QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS
                                  ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^
         """
-        print(self.print_wide())
+        print(self.format_wide())
 
     def is_heavy_chain(self):
         """Check if this chain is heavy chain (``chain_type=="H"``)"""
@@ -333,6 +382,10 @@ class Chain:
         for chain in other:
             assert isinstance(chain, Chain), f'Expected Chain object, got {type(chain)}: {chain}'
             pos_dicts.append(chain.positions)
+
+        unique_cdr_definitions = set(pos.cdr_definition for pos_dict in pos_dicts for pos in pos_dict.keys())
+        assert len(unique_cdr_definitions) <= 1, f'Aligned chains should use the same CDR definitions, got: {unique_cdr_definitions}'
+
         shared_pos = sorted(set(pos for pos_dict in pos_dicts for pos in pos_dict.keys()))
         residues = [tuple(pos_dict.get(pos, '-') for pos_dict in pos_dicts) for pos in shared_pos]
         return Alignment(shared_pos, residues, chain_type=self.chain_type, scheme=self.scheme)
@@ -363,8 +416,8 @@ class Chain:
         if replace_seq is not None:
             assert len(replace_seq) == len(positions), 'Sequence needs to be the same length'
 
-        start = self.parse_position(start, allow_raw=allow_raw) if start is not None else None
-        stop = self.parse_position(stop, allow_raw=allow_raw) if stop is not None else None
+        start = self._parse_position(start, allow_raw=allow_raw) if start is not None else None
+        stop = self._parse_position(stop, allow_raw=allow_raw) if stop is not None else None
 
         for i, (pos, aa) in enumerate(positions.items()):
             if start is not None and pos < start:
@@ -373,7 +426,31 @@ class Chain:
                 break
             aa_dict[pos] = replace_seq[i] if replace_seq is not None else aa
 
-        return Chain(sequence=None, aa_dict=aa_dict, name=self.name, scheme=self.scheme, chain_type=self.chain_type, species=self.species)
+        return Chain(
+            sequence=None,
+            aa_dict=aa_dict,
+            name=self.name,
+            scheme=self.scheme,
+            chain_type=self.chain_type,
+            cdr_definition=self.cdr_definition,
+            species=self.species
+        )
+
+    def renumber(self, scheme=None, cdr_definition=None, allowed_species=None):
+        """Return copy of this chain aligned using a different numbering scheme or CDR definition
+
+        :param scheme: Change numbering scheme: One of ``imgt``, ``chothia``, ``kabat``, ``aho``.
+        :param cdr_definition: Change CDR definition scheme: One of ``imgt``, ``chothia``, ``kabat``, ``north``.
+        :param allowed_species: ``None`` to allow all species, or one or more of: ``'human', 'mouse','rat','rabbit','rhesus','pig','alpaca'``
+        """
+
+        return Chain(
+            self.seq + self.tail,
+            name=self.name,
+            allowed_species=allowed_species,
+            scheme=scheme or self.scheme,
+            cdr_definition=cdr_definition or self.cdr_definition
+        )
 
     def graft_cdrs_onto(self, other: 'Chain', name: str = None) -> 'Chain':
         """Graft CDRs from this Chain onto another chain
@@ -384,6 +461,8 @@ class Chain:
         """
         assert self.scheme == other.scheme, \
             f'Sequences need to have the same numbering scheme, got {self.scheme} and {other.scheme}'
+        assert self.cdr_definition == other.cdr_definition, \
+            f'Sequences need to have the same CDR definition, got {self.cdr_definition} and {other.cdr_definition}'
         assert self.chain_type == other.chain_type, \
             f'Sequences need to have the same chain type, got {self.chain_type} and {other.chain_type}'
 
@@ -397,12 +476,14 @@ class Chain:
 
         return Chain(sequence=None, aa_dict=grafted_dict, name=name or self.name, chain_type=self.chain_type, scheme=self.scheme)
 
-    def parse_position(self, position: Union[int, str, 'Position'], allow_raw=False):
-        """Create :class:`Position` key object from string
+    def _parse_position(self, position: Union[int, str, 'Position'], allow_raw=False):
+        """Create :class:`Position` key object from string or int.
+
+        Note: The position should only be used for indexing, CDR definition is not preserved!
 
         :param position: Numeric or string position representation
         :param allow_raw: Also allow unaligned numeric (int) indexing from 0 to length of sequence - 1
-        :return: new Position object
+        :return: new Position object, should only be used for indexing, CDR definition is not preserved!
         """
         if isinstance(position, str):
             return Position.from_string(position, chain_type=self.chain_type, scheme=self.scheme)
@@ -417,7 +498,11 @@ class Chain:
                              "For named position indexing, use string (e.g. chain['111A'] or chain['H111A'])")
         if position >= len(self.positions):
             return None
-        return list(self.positions.keys())[position]
+        return self.get_position_by_raw_index(position)
+
+    def get_position_by_raw_index(self, index):
+        """Get Position object at corresponding raw numeric position"""
+        return list(self.positions.keys())[index]
 
     @property
     def raw(self):
@@ -449,13 +534,13 @@ class Chain:
         :return: Dictionary of Region name -> Dictionary of (:class:`Position` -> Amino acid)
         """
         return OrderedDict(
-            fw1=self.fw1_dict,
-            cdr1=self.cdr1_dict,
-            fw2=self.fw2_dict,
-            cdr2=self.cdr2_dict,
-            fw3=self.fw3_dict,
-            cdr3=self.cdr3_dict,
-            fw4=self.fw4_dict
+            FW1=self.fw1_dict,
+            CDR1=self.cdr1_dict,
+            FW2=self.fw2_dict,
+            CDR2=self.cdr2_dict,
+            FW3=self.fw3_dict,
+            CDR3=self.cdr3_dict,
+            FW4=self.fw4_dict
         )
 
     @property
@@ -519,14 +604,14 @@ class RawChainAccessor:
         if isinstance(item, slice):
             if item.step is not None and item.step != 1:
                 raise IndexError(f'Slicing with step != 1 is not implemented, got: {item}')
-            if item.start is not None and not isinstance(item.start, int):
+            if item.start is not None and not is_integer(item.start):
                 raise IndexError(f'Expected int start index for chain.raw, got {type(item.start)}: {item.start}')
-            if item.stop is not None and not isinstance(item.stop, int):
+            if item.stop is not None and not is_integer(item.stop):
                 raise IndexError(f'Expected int end index for chain.raw, got {type(item.stop)}: {item.stop}')
             return self.chain.slice(start=item.start, stop=item.stop, stop_inclusive=False, allow_raw=True)
-        if not isinstance(item, int):
+        if not is_integer(item):
             raise IndexError(f'Expected int indexing for chain.raw, got {type(item)}: {item}')
-        pos = self.chain.parse_position(item, allow_raw=True)
+        pos = self.chain.get_position_by_raw_index(item)
         return self.chain[pos]
 
 
@@ -558,6 +643,8 @@ class Alignment:
         assert isinstance(positions, list), 'Expected list of positions and residues. ' \
                                             'Use chain.align(other) to create an alignment.'
         assert len(positions) == len(residues)
+        unique_cdr_definitions = set(pos.cdr_definition for pos in positions)
+        assert len(unique_cdr_definitions) <= 1, f'Aligned chains should use the same CDR definitions, got: {unique_cdr_definitions}'
         self.positions = positions
         self.residues = residues
         self.scheme = scheme
@@ -578,7 +665,7 @@ class Alignment:
             if item.step is not None and item.step != 1:
                 raise IndexError(f'Slicing with step != 1 is not implemented, got: {item}')
             return self.slice(start=item.start, stop=item.stop)
-        pos = self.parse_position(item)
+        pos = self._parse_position(item)
         raw_pos = self.positions.index(pos)
         return self.residues[raw_pos]
 
@@ -595,8 +682,8 @@ class Alignment:
         :return: new sliced Alignment object
         """
 
-        start = self.parse_position(start, allow_raw=allow_raw) if start is not None else None
-        stop = self.parse_position(stop, allow_raw=allow_raw) if stop is not None else None
+        start = self._parse_position(start, allow_raw=allow_raw) if start is not None else None
+        stop = self._parse_position(stop, allow_raw=allow_raw) if stop is not None else None
 
         new_positions = []
         new_residues = []
@@ -610,12 +697,14 @@ class Alignment:
 
         return Alignment(positions=new_positions, residues=new_residues, scheme=self.scheme, chain_type=self.chain_type)
 
-    def parse_position(self, position: Union[int, str, 'Position'], allow_raw=False):
-        """Create :class:`Position` key object from string
+    def _parse_position(self, position: Union[int, str, 'Position'], allow_raw=False):
+        """Create :class:`Position` key object from string or int.
+
+        Note: The position should only be used for indexing, CDR definition is not preserved!
 
         :param position: Numeric or string position representation
         :param allow_raw: Also allow unaligned numeric (int) indexing from 0 to length of sequence - 1
-        :return: new Position object
+        :return: new Position object, should only be used for indexing, CDR definition is not preserved!
         """
         if isinstance(position, str):
             return Position.from_string(position, chain_type=self.chain_type, scheme=self.scheme)
@@ -703,14 +792,14 @@ class RawAlignmentAccessor:
         if isinstance(item, slice):
             if item.step is not None and item.step != 1:
                 raise IndexError(f'Slicing with step != 1 is not implemented, got: {item}')
-            if item.start is not None and not isinstance(item.start, int):
+            if item.start is not None and not is_integer(item.start):
                 raise IndexError(f'Expected int start index for alignment.raw, got {type(item.start)}: {item.start}')
-            if item.stop is not None and not isinstance(item.stop, int):
+            if item.stop is not None and not is_integer(item.stop):
                 raise IndexError(f'Expected int end index for alignment.raw, got {type(item.stop)}: {item.stop}')
             return self.alignment.slice(start=item.start, stop=item.stop, stop_inclusive=False, allow_raw=True)
-        if not isinstance(item, int):
+        if not is_integer(item):
             raise IndexError(f'Expected int indexing for alignment.raw, got {type(item)}: {item}')
-        pos = self.alignment.parse_position(item, allow_raw=True)
+        pos = self.alignment.positions[item]
         return self.alignment[pos]
 
 
@@ -725,8 +814,16 @@ class Position:
         _validate_chain_type(chain_type)
         self.chain_type: str = chain_type
         self.number: int = int(number)
-        self.letter: str = letter.strip() if letter.strip() else ''
+        self.letter: str = letter.strip()
         self.scheme: str = scheme
+        self.cdr_definition: str = self.scheme
+        self.cdr_definition_position: int = self.number
+
+    def copy(self):
+        return copy.copy(self)
+    
+    def _key(self):
+        return self.chain_type, self.number, self.letter, self.scheme
 
     def __repr__(self):
         return f'{self.chain_type_prefix()}{self.number}{self.letter} ({self.scheme})'
@@ -734,7 +831,22 @@ class Position:
     def __str__(self):
         return self.format()
 
+    def set_cdr_definition(self, cdr_definition: str, cdr_definition_position: int):
+        assert cdr_definition is not None, 'cdr_definition is required'
+        assert cdr_definition_position is not None, 'cdr_definition_position is required'
+        self.cdr_definition = cdr_definition
+        self.cdr_definition_position = cdr_definition_position
+
     def format(self, chain_type=True, region=False, rjust=False, ljust=False, fillchar=' '):
+        """Format Position to string
+
+        :param chain_type: Add chain type prefix (H/L)
+        :param region: Add region prefix (FW1, CDR1, ...)
+        :param rjust: Align text to the right
+        :param ljust: Align text to the left
+        :param fillchar: Characer to use for alignment padding
+        :return: formatted string
+        """
         formatted = f'{self.number}{self.letter}'
         if chain_type:
             formatted = f'{self.chain_type_prefix()}{formatted}'
@@ -748,10 +860,10 @@ class Position:
         return formatted
 
     def __hash__(self):
-        return self.__repr__().__hash__()
+        return self._key().__hash__()
 
     def __eq__(self, other):
-        return self.__repr__() == other.__repr__()
+        return isinstance(other, Position) and self._key() == other._key()
 
     def __ge__(self, other):
         return self == other or self > other
@@ -791,20 +903,25 @@ class Position:
 
         :return: uppercase string, one of: ``"FW1", "CDR1", "FW2", "CDR2", "FW3", "CDR3", "FW4"``
         """
-        if self.scheme in SCHEME_POSITION_TO_REGION:
-            regions = SCHEME_POSITION_TO_REGION[self.scheme]
+        if self.cdr_definition in SCHEME_POSITION_TO_REGION:
+            regions = SCHEME_POSITION_TO_REGION[self.cdr_definition]
         else:
-            regions = SCHEME_POSITION_TO_REGION[f'{self.scheme}_{self.chain_type}']
-        return regions[self.number]
+            regions = SCHEME_POSITION_TO_REGION[f'{self.cdr_definition}_{self.chain_type}']
+        return regions[self.cdr_definition_position]
 
     def is_in_cdr(self):
         """Check if given position is found in the CDR regions"""
-        # FIXME
+        # TODO check in a more elegant way
         return self.get_region().lower().startswith('cdr')
 
     @classmethod
     def from_string(cls, position, chain_type, scheme):
+        """Create Position object from string, e.g. "H5"
+
+        Note that Positions parsed from string do not support separate CDR definitions.
+        """
         match = POS_REGEX.match(position.upper())
+        _validate_chain_type(chain_type)
         expected_chain_prefix = 'H' if chain_type == 'H' else 'L'
         if match is None:
             raise IndexError(f'Expected position format chainNumberLetter '
@@ -860,18 +977,26 @@ def is_similar_residue(a, b):
     return a+b in SIMILAR_PAIRS
 
 
+def is_integer(object):
+    return isinstance(object, int) or isinstance(object, np.integer)
+
+
 SUPPORTED_SCHEMES = ['imgt', 'aho', 'chothia', 'kabat']
+SUPPORTED_CDR_DEFINITIONS = ['imgt', 'chothia', 'kabat', 'north']
 
 SCHEME_BORDERS = {
                # Start coordinates
                # CDR1, FW2, CDR2, FW3, CDR3, FW4
          'imgt': [27,  39,  56,   66,  105,  118, 129],
-    'chothia_H': [26,  33,  52,   57,  95,   103, 114],
-    'chothia_K': [24,  35,  50,   57,  89,    98, 108],
-    'chothia_L': [24,  35,  50,   57,  89,    98, 108],
       'kabat_H': [31,  36,  50,   66,  95,   103, 114],
       'kabat_K': [24,  35,  50,   57,  89,    98, 108],
       'kabat_L': [24,  35,  50,   57,  89,    98, 108],
+    'chothia_H': [26,  33,  52,   57,  95,   103, 114],
+    'chothia_K': [24,  35,  50,   57,  89,    98, 108],
+    'chothia_L': [24,  35,  50,   57,  89,    98, 108],
+      'north_H': [23,  36,  50,   59,  93,   103, 114],
+      'north_K': [24,  35,  49,   57,  89,    98, 108],
+      'north_L': [24,  35,  49,   57,  89,    98, 108],
 }
 
 # { scheme -> { region -> list of position numbers } }
