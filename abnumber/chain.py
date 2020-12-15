@@ -72,13 +72,19 @@ class Chain:
 
         if aa_dict is not None:
             if sequence is not None:
-                raise ValueError('Only one of aa_dict= and sequence= can be provided')
+                raise ChainParseError('Only one of aa_dict= and sequence= can be provided')
             assert isinstance(aa_dict, dict), f'Expected dict, got: {type(aa_dict)}'
+            assert tail is not None
+            assert chain_type is not None
         else:
+            if sequence is None:
+                raise ChainParseError('Expected sequence, got None')
+            if not isinstance(sequence, str) and not isinstance(sequence, Seq):
+                raise ChainParseError(f'Expected string or Seq, got {type(sequence)}: {sequence}')
             if chain_type is not None:
-                raise ValueError('Do not use chain_type= when providing sequence=, it will be inferred automatically')
+                raise ChainParseError('Do not use chain_type= when providing sequence=, it will be inferred automatically')
             if tail is not None:
-                raise ValueError('Do not use tail= when providing sequence=, it will be inferred automatically')
+                raise ChainParseError('Do not use tail= when providing sequence=, it will be inferred automatically')
             if isinstance(sequence, Seq):
                 sequence = str(sequence)
             aa_dict, chain_type, tail, species = _anarci_align(sequence, scheme=scheme, allowed_species=allowed_species)
@@ -101,13 +107,13 @@ class Chain:
         self.species: str = species
         """Species as identified by ANARCI"""
 
-        self.fw1_dict = OrderedDict()
+        self.fr1_dict = OrderedDict()
         self.cdr1_dict = OrderedDict()
-        self.fw2_dict = OrderedDict()
+        self.fr2_dict = OrderedDict()
         self.cdr2_dict = OrderedDict()
-        self.fw3_dict = OrderedDict()
+        self.fr3_dict = OrderedDict()
         self.cdr3_dict = OrderedDict()
-        self.fw4_dict = OrderedDict()
+        self.fr4_dict = OrderedDict()
 
         self._init_from_dict(aa_dict, allowed_species=allowed_species)
 
@@ -122,7 +128,7 @@ class Chain:
         # list of region start positions
         borders = SCHEME_BORDERS[self.cdr_definition] if self.cdr_definition in SCHEME_BORDERS else SCHEME_BORDERS[f'{self.cdr_definition}_{self.chain_type}']
 
-        regions_list = [self.fw1_dict, self.cdr1_dict, self.fw2_dict, self.cdr2_dict, self.fw3_dict, self.cdr3_dict, self.fw4_dict]
+        regions_list = [self.fr1_dict, self.cdr1_dict, self.fr2_dict, self.cdr2_dict, self.fr3_dict, self.cdr3_dict, self.fr4_dict]
         region_idx = 0
 
         sorted_positions = sorted(aa_dict.keys())
@@ -274,7 +280,7 @@ class Chain:
             return self.format_tall(**kwargs)
         raise ValueError(f'Use method="wide" or method="tall", unknown method: "{method}"')
     
-    def print(self, method='wide'):
+    def print(self, method='wide', **kwargs):
         """Print string representation using :meth:`Chain.format`
 
         By default, produces "wide" format with sequence on first line and CDR regions higlighted with ``^`` on second line:
@@ -285,7 +291,7 @@ class Chain:
 
         :param method: use ``"wide"`` for :meth:`Chain.format_wide` or ``"tall"`` for :meth:`Chain.format_tall()`
         """
-        print(self.format(method=method))
+        print(self.format(method=method, **kwargs))
 
     def format_tall(self, columns=5):
         """Create string with one position per line, showing position numbers and amino acids
@@ -318,28 +324,53 @@ class Chain:
         """
         print(self.format_tall(columns=columns))
 
-    def format_wide(self):
+    def format_wide(self, numbering=False):
         """Create string with sequence on first line and CDR regions higlighted with `^` on second line
 
+        :param numbering: Add position numbers on top
         :return: formatted string
         """
-        annot = ' ' * len(self.fw1_dict)
-        annot += '^' * len(self.cdr1_dict)
-        annot += ' ' * len(self.fw2_dict)
-        annot += '^' * len(self.cdr2_dict)
-        annot += ' ' * len(self.fw3_dict)
-        annot += '^' * len(self.cdr3_dict)
-        annot += ' ' * len(self.fw4_dict)
-        return self.seq + '\n' + annot
+        lines = []
+        if numbering:
 
-    def print_wide(self):
+            first_order = ''
+            prev_number = None
+            after_double_digit = False
+            for pos in self.positions:
+                number = str(pos.number // 10)
+                if number != prev_number:
+                    if after_double_digit:
+                        # Special case: when double digits follow another double digits, do not print the first digit
+                        number = number[1:]
+                    first_order += number
+                    if len(number) > 1:
+                        after_double_digit = True
+                else:
+                    if after_double_digit:
+                        # Special case: After 10, 11, etc, skip adding the space
+                        after_double_digit = False
+                    else:
+                        first_order += ' '
+                prev_number = number
+
+            lines.append(first_order)
+            lines.append(''.join(str(pos.number % 10) for pos in self.positions))
+            letters = ''.join(pos.letter or ' ' for pos in self.positions)
+            if letters.strip():
+                lines.append(letters)
+        lines.append(self.seq)
+        # TODO lines.append(''.join('^' if pos.is_in_cdr() else ("°" if pos.is_in_vernier() else ' ') for pos in self.positions))
+        lines.append(''.join('^' if pos.is_in_cdr() else ' ' for pos in self.positions))
+        return '\n'.join(lines)
+
+    def print_wide(self, numbering=False):
         """Print string representation using :meth:`Chain.format_wide`
 
         >>> chain.print_wide()
         QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS
                                  ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^
         """
-        print(self.format_wide())
+        print(self.format_wide(numbering=numbering))
 
     def is_heavy_chain(self):
         """Check if this chain is heavy chain (``chain_type=="H"``)"""
@@ -433,6 +464,7 @@ class Chain:
             scheme=self.scheme,
             chain_type=self.chain_type,
             cdr_definition=self.cdr_definition,
+            tail=self.tail,
             species=self.species
         )
 
@@ -455,7 +487,7 @@ class Chain:
     def graft_cdrs_onto(self, other: 'Chain', name: str = None) -> 'Chain':
         """Graft CDRs from this Chain onto another chain
 
-        :param other: Chain to graft CDRs into
+        :param other: Chain to graft CDRs into (source of frameworks and tail sequence)
         :param name: Name of new Chain. If not provided, use name of this chain.
         :return: Chain with CDRs grafted from this chain and frameworks from the given chain
         """
@@ -474,7 +506,8 @@ class Chain:
             else:
                 grafted_dict.update(other_dict)
 
-        return Chain(sequence=None, aa_dict=grafted_dict, name=name or self.name, chain_type=self.chain_type, scheme=self.scheme)
+        return Chain(sequence=None, aa_dict=grafted_dict, name=name or self.name, chain_type=self.chain_type,
+                     scheme=self.scheme, cdr_definition=self.cdr_definition, tail=other.tail)
 
     def _parse_position(self, position: Union[int, str, 'Position'], allow_raw=False):
         """Create :class:`Position` key object from string or int.
@@ -534,13 +567,13 @@ class Chain:
         :return: Dictionary of Region name -> Dictionary of (:class:`Position` -> Amino acid)
         """
         return OrderedDict(
-            FW1=self.fw1_dict,
+            FW1=self.fr1_dict,
             CDR1=self.cdr1_dict,
-            FW2=self.fw2_dict,
+            FW2=self.fr2_dict,
             CDR2=self.cdr2_dict,
-            FW3=self.fw3_dict,
+            FW3=self.fr3_dict,
             CDR3=self.cdr3_dict,
-            FW4=self.fw4_dict
+            FW4=self.fr4_dict
         )
 
     @property
@@ -561,9 +594,9 @@ class Chain:
         return ''.join(self.positions.values())
 
     @property
-    def fw1_seq(self):
+    def fr1_seq(self):
         """Unaligned string representation of the Framework 1 region sequence"""
-        return ''.join(self.fw1_dict.values())
+        return ''.join(self.fr1_dict.values())
 
     @property
     def cdr1_seq(self):
@@ -571,9 +604,9 @@ class Chain:
         return ''.join(self.cdr1_dict.values())
 
     @property
-    def fw2_seq(self):
+    def fr2_seq(self):
         """Unaligned string representation of the Framework 2 region sequence"""
-        return ''.join(self.fw2_dict.values())
+        return ''.join(self.fr2_dict.values())
 
     @property
     def cdr2_seq(self):
@@ -581,9 +614,9 @@ class Chain:
         return ''.join(self.cdr2_dict.values())
 
     @property
-    def fw3_seq(self):
+    def fr3_seq(self):
         """Unaligned string representation of the Framework 3 region sequence"""
-        return ''.join(self.fw3_dict.values())
+        return ''.join(self.fr3_dict.values())
 
     @property
     def cdr3_seq(self):
@@ -591,9 +624,9 @@ class Chain:
         return ''.join(self.cdr3_dict.values())
 
     @property
-    def fw4_seq(self):
+    def fr4_seq(self):
         """Unaligned string representation of the Framework 4 region sequence"""
-        return ''.join(self.fw4_dict.values())
+        return ''.join(self.fr4_dict.values())
 
 
 class RawChainAccessor:
@@ -738,7 +771,8 @@ class Alignment:
                 lines.append(''.join(_identity_symbol(aas[i], aas[i-1]) for pos, aas in self))
             lines.append(''.join(aas[i] for pos, aas in self))
         if mark_cdrs:
-            lines.append(''.join('^' if pos.is_in_cdr() else ' ' for pos, aas in self))
+            # TODO lines.append(''.join('^' if pos.is_in_cdr() else ("°" if pos.is_in_vernier() else ' ') for pos in self.positions))
+            lines.append(''.join('^' if pos.is_in_cdr() else ' ' for pos in self.positions))
         return '\n'.join(lines)
 
     def print(self, mark_identity=True, mark_cdrs=True):
@@ -841,7 +875,7 @@ class Position:
         """Format Position to string
 
         :param chain_type: Add chain type prefix (H/L)
-        :param region: Add region prefix (FW1, CDR1, ...)
+        :param region: Add region prefix (FR1, CDR1, ...)
         :param rjust: Align text to the right
         :param ljust: Align text to the left
         :param fillchar: Characer to use for alignment padding
@@ -901,7 +935,7 @@ class Position:
     def get_region(self):
         """Get string name of this position's region
 
-        :return: uppercase string, one of: ``"FW1", "CDR1", "FW2", "CDR2", "FW3", "CDR3", "FW4"``
+        :return: uppercase string, one of: ``"FR1", "CDR1", "FR2", "CDR2", "FR3", "CDR3", "FR4"``
         """
         if self.cdr_definition in SCHEME_POSITION_TO_REGION:
             regions = SCHEME_POSITION_TO_REGION[self.cdr_definition]
@@ -913,6 +947,13 @@ class Position:
         """Check if given position is found in the CDR regions"""
         # TODO check in a more elegant way
         return self.get_region().lower().startswith('cdr')
+
+    def is_in_vernier(self):
+        # FIXME
+        if self.cdr_definition != 'kabat':
+            raise NotImplementedError('Vernier zone identification is currently supported '
+                                      f'only with Kabat CDR definitions, got: {self.cdr_definition}')
+        return self.cdr_definition_position in SCHEME_VERNIER.get(f'{self.cdr_definition}_{self.chain_type}', [])
 
     @classmethod
     def from_string(cls, position, chain_type, scheme):
@@ -986,7 +1027,7 @@ SUPPORTED_CDR_DEFINITIONS = ['imgt', 'chothia', 'kabat', 'north']
 
 SCHEME_BORDERS = {
                # Start coordinates
-               # CDR1, FW2, CDR2, FW3, CDR3, FW4
+               # CDR1, FR2, CDR2, FR3, CDR3, FR4
          'imgt': [27,  39,  56,   66,  105,  118, 129],
       'kabat_H': [31,  36,  50,   66,  95,   103, 114],
       'kabat_K': [24,  35,  50,   57,  89,    98, 108],
@@ -1002,13 +1043,13 @@ SCHEME_BORDERS = {
 # { scheme -> { region -> list of position numbers } }
 SCHEME_REGIONS = {
     scheme: {
-        'FW1': list(range(1, borders[0])),
+        'FR1': list(range(1, borders[0])),
         'CDR1': list(range(borders[0], borders[1])),
-        'FW2': list(range(borders[1], borders[2])),
+        'FR2': list(range(borders[1], borders[2])),
         'CDR2': list(range(borders[2], borders[3])),
-        'FW3': list(range(borders[3], borders[4])),
+        'FR3': list(range(borders[3], borders[4])),
         'CDR3': list(range(borders[4], borders[5])),
-        'FW4': list(range(borders[5], borders[6])),
+        'FR4': list(range(borders[5], borders[6])),
     } for scheme, borders in SCHEME_BORDERS.items()
 }
 
@@ -1017,3 +1058,23 @@ SCHEME_POSITION_TO_REGION = {
     scheme: {pos_num: region for region, positions in regions.items() for pos_num in positions} \
     for scheme, regions in SCHEME_REGIONS.items()
 }
+
+# { scheme -> set of vernier position numbers }
+SCHEME_VERNIER = {
+    #    'imgt_H': frozenset([2,                 52, 53, 54, 76, 78, 80, 82, 87,         118]),
+    # 'chothia_H': frozenset([2,                 47, 48, 49, 67, 69, 71, 73, 78, 93, 94, 103]),
+    #   'north_H': frozenset([2,                 47, 48, 49, 67, 69, 71, 73, 78, 93, 94, 103]),
+      'kabat_H': frozenset([2, 27, 28, 29, 30, 47, 48, 49, 67, 69, 71, 73, 78, 93, 94, 103]),
+
+    #    'imgt_K': frozenset([2, 4, 41, 42, 52, 53, 54, 55, 78, 80, 84, 85, 87, 118]),
+    #    'imgt_L': frozenset([2, 4, 41, 42, 52, 53, 54, 55, 78, 80, 84, 85, 87, 118]),
+    # 'chothia_K': frozenset([2, 4, 35, 36, 46, 47, 48, 49, 64, 66, 68, 69, 71, 98]),
+    # 'chothia_L': frozenset([2, 4, 35, 36, 46, 47, 48, 49, 64, 66, 68, 69, 71, 98]),
+    #   'north_K': frozenset([2, 4, 35, 36, 46, 47, 48, 49, 64, 66, 68, 69, 71, 98]),
+    #   'north_L': frozenset([2, 4, 35, 36, 46, 47, 48, 49, 64, 66, 68, 69, 71, 98]),
+      'kabat_K': frozenset([2, 4, 35, 36, 46, 47, 48, 49, 64, 66, 68, 69, 71, 98]),
+      'kabat_L': frozenset([2, 4, 35, 36, 46, 47, 48, 49, 64, 66, 68, 69, 71, 98]),
+}
+
+#'kabat_H': 31-35, 50-65, 95-102
+#'kabat_K': 24-34, 50-56, 89-97
