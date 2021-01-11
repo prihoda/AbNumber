@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Union, List, Generator
+from typing import Union, List, Generator, Tuple
 import copy
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
@@ -60,8 +60,8 @@ class Chain:
     :param sequence: Unaligned string sequence
     :param name: Optional sequence identifier
     :param scheme: Numbering scheme: One of ``imgt``, ``chothia``, ``kabat``, ``aho``
-    :param cdr_definition: Numbering scheme to be used for definition of CDR regions. Same as ``scheme`` by default. Required for ``aho``.
-                           One of ``imgt``, ``chothia``, ``kabat``, ``north``.
+    :param cdr_definition: Numbering scheme to be used for definition of CDR regions. Same as ``scheme`` by default.
+                           One of ``imgt``, ``chothia``, ``kabat``, ``north``. Required for ``aho``.
     :param allowed_species: ``None`` to allow all species, or one or more of: ``'human', 'mouse','rat','rabbit','rhesus','pig','alpaca'``
     :param aa_dict: Create Chain object directly from dictionary of region objects (internal use)
     :param tail: Constant region sequence
@@ -87,7 +87,10 @@ class Chain:
                 raise ChainParseError('Do not use tail= when providing sequence=, it will be inferred automatically')
             if isinstance(sequence, Seq):
                 sequence = str(sequence)
-            aa_dict, chain_type, tail, species = _anarci_align(sequence, scheme=scheme, allowed_species=allowed_species)
+            results = _anarci_align(sequence, scheme=scheme, allowed_species=allowed_species)
+            if len(results) > 1:
+                raise ChainParseError(f'Found {len(results)} antibody domains in sequence: "{sequence}"')
+            aa_dict, chain_type, tail, species = results[0]
 
         _validate_chain_type(chain_type)
 
@@ -147,7 +150,7 @@ class Chain:
                 seq,
                 scheme=self.cdr_definition if self.cdr_definition != 'north' else 'chothia',
                 allowed_species=allowed_species
-            )[0]
+            )[0][0]
             cdr_definition_positions = [pos.number for pos in sorted(renumbered_aa_dict.keys())]
             combined_aa_dict = {}
             for orig_pos, cdr_definition_position in zip(sorted_positions, cdr_definition_positions):
@@ -157,6 +160,7 @@ class Chain:
                 combined_aa_dict[pos] = aa
 
         for pos in sorted(combined_aa_dict.keys()):
+            assert isinstance(pos, Position), f'Expected Position object, got {type(pos)}: {pos}'
             aa = combined_aa_dict[pos].upper().strip()
             if aa in [None, '*', '-', '', '.']:
                 continue
@@ -254,7 +258,7 @@ class Chain:
         aa_dict = {Position.from_string(pos, chain_type=chain_type, scheme=scheme): aa
                    for pos, aa in series[position_index].items() if aa != '-' and not pd.isna(aa)}
         return cls(sequence=None, aa_dict=aa_dict, name=series.name, scheme=scheme, cdr_definition=cdr_definition,
-                   chain_type=chain_type, species=species)
+                   chain_type=chain_type, species=species, tail='')
 
     @classmethod
     def from_anarci_csv(cls, path, scheme, cdr_definition=None, as_series=False) -> Union[List['Chain'], pd.Series]:
@@ -481,7 +485,7 @@ class Chain:
             name=self.name,
             allowed_species=allowed_species,
             scheme=scheme or self.scheme,
-            cdr_definition=cdr_definition or self.cdr_definition
+            cdr_definition=cdr_definition or scheme or self.cdr_definition
         )
 
     def graft_cdrs_onto(self, other: 'Chain', name: str = None) -> 'Chain':
@@ -536,6 +540,28 @@ class Chain:
     def get_position_by_raw_index(self, index):
         """Get Position object at corresponding raw numeric position"""
         return list(self.positions.keys())[index]
+
+    def find_human_germlines(self, limit=10) -> Tuple[List['Chain'], List['Chain']]:
+        """Find most identical germline sequences based on IMGT alignment
+
+        :param limit: Number of best matching germlines to return
+        :return: list of top V chains, list of top J chains
+        """
+        from abnumber.germlines import get_imgt_v_chains, get_imgt_j_chains
+
+        chain = self if self.scheme == 'imgt' and self.cdr_definition == 'imgt' else self.renumber('imgt')
+        v_chains = list(get_imgt_v_chains(chain.chain_type).values())
+        j_chains = list(get_imgt_j_chains(chain.chain_type).values())
+
+        v_alignments = [chain.align(germline) for germline in v_chains]
+        v_ranks = np.array([alignment.num_mutations() for alignment in v_alignments]).argsort()[:limit]
+        top_v_chains = [v_chains[r] for r in v_ranks]
+
+        j_alignments = [chain.align(germline) for germline in j_chains]
+        j_ranks = np.array([alignment.num_mutations() for alignment in j_alignments]).argsort()[:limit]
+        top_j_chains = [j_chains[r] for r in j_ranks]
+
+        return top_v_chains, top_j_chains
 
     @property
     def raw(self):
@@ -986,23 +1012,22 @@ def _validate_chain_type(chain_type):
         f'Invalid chain type "{chain_type}", it should be "H" (heavy),  "L" (lambda light chian) or "K" (kappa light chain)'
 
 
-def _anarci_align(sequence, scheme, allowed_species):
+def _anarci_align(sequence, scheme, allowed_species) -> List[Tuple]:
     all_numbered, all_ali, all_hits = anarci([('id', sequence)], scheme=scheme, allowed_species=allowed_species)
-    # We only have one sequence
-    numbered = all_numbered[0]
-    ali = all_ali[0]
-    hits = all_hits[0]
-    if numbered is None:
+    seq_numbered = all_numbered[0]
+    seq_ali = all_ali[0]
+    if seq_numbered is None:
         raise ChainParseError(f'Variable chain sequence not recognized: "{sequence}"')
-    if len(numbered) != 1:
-        raise NotImplementedError(f'Unsupported: Multiple ANARCI domains found in sequence: "{sequence}"')
-    positions, start, end = numbered[0]
-    chain_type = ali[0]['chain_type']
-    species = ali[0]['species']
-    aa_dict = {Position(chain_type=chain_type, number=num, letter=letter, scheme=scheme): aa for (num, letter), aa in
-               positions if aa != '-'}
-    tail = sequence[end+1:]
-    return aa_dict, chain_type, tail, species
+    assert len(seq_numbered) == len(seq_ali), 'Unexpected ANARCI output'
+    results = []
+    for (positions, start, end), ali in zip(seq_numbered, seq_ali):
+        chain_type = ali['chain_type']
+        species = ali['species']
+        aa_dict = {Position(chain_type=chain_type, number=num, letter=letter, scheme=scheme): aa
+                   for (num, letter), aa in positions if aa != '-'}
+        tail = sequence[end+1:]
+        results.append((aa_dict, chain_type, tail, species))
+    return results
 
 
 # Based on positive score in Blosum62
