@@ -2,6 +2,32 @@ _HUMAN_IMGT_V_CHAINS = None
 _HUMAN_IMGT_J_CHAINS = None
 
 
+def get_imgt_chain(gene_name):
+    if gene_name.startswith('IGH'):
+        chain_type = 'H'
+    elif gene_name.startswith('IGK'):
+        chain_type = 'K'
+    elif gene_name.startswith('IGL'):
+        chain_type = 'L'
+    else:
+        raise ValueError(f'Gene name should start with IG(H/K/L), got: {gene_name}')
+
+    if gene_name.startswith(f'IG{chain_type}V'):
+        chains = get_imgt_v_chains(chain_type)
+    elif gene_name.startswith(f'IG{chain_type}J'):
+        chains = get_imgt_j_chains(chain_type)
+    else:
+        raise ValueError(f'Expected V or J gene name, got: {gene_name}')
+
+    if gene_name not in chains:
+        suffixes = [chain_name for chain_name in chains if chain_name.startswith(gene_name)]
+        if suffixes:
+            raise ValueError(f'Gene name "{gene_name}" not complete, use one of: {suffixes}')
+        print('Available gene names:', chains.keys())
+        raise ValueError(f'Gene name "{gene_name}" not found')
+
+    return chains[gene_name]
+
 def get_imgt_v_chains(chain_type=None):
     global _HUMAN_IMGT_V_CHAINS
     if _HUMAN_IMGT_V_CHAINS is None:

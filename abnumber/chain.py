@@ -197,11 +197,11 @@ class Chain:
         return self.positions == other.positions and self.tail == other.tail
 
     @classmethod
-    def to_fasta(cls, chains, path_or_fd, keep_tail=False):
+    def to_fasta(cls, chains, path_or_fd, keep_tail=False, description=''):
         if isinstance(chains, Chain):
-            records = chains.to_seq_record(keep_tail=keep_tail)
+            records = chains.to_seq_record(keep_tail=keep_tail, description=description)
         else:
-            records = (chain.to_seq_record(keep_tail=keep_tail) for chain in chains)
+            records = (chain.to_seq_record(keep_tail=keep_tail, description=description) for chain in chains)
         return SeqIO.write(records, path_or_fd, 'fasta-2line')
 
     @classmethod
@@ -215,11 +215,11 @@ class Chain:
             return pd.Series(chains, index=[c.name for c in chains])
         return chains
 
-    def to_seq_record(self, keep_tail=False):
+    def to_seq_record(self, keep_tail=False, description=''):
         if not self.name:
             raise ValueError('Name needs to be present to convert to a SeqRecord')
         seq = Seq(self.seq + self.tail if keep_tail else self.seq)
-        return SeqRecord(seq, id=self.name, description='')
+        return SeqRecord(seq, id=self.name, description=description)
 
     @classmethod
     def to_anarci_csv(cls, chains: List['Chain'], path):
@@ -228,18 +228,30 @@ class Chain:
 
     @classmethod
     def to_dataframe(cls, chains: List['Chain']):
-        df = pd.DataFrame([chain.to_series() for chain in chains]).fillna('-')
-        df.index.name = 'Id'
+        series_list = [chain.to_series() for chain in chains]
 
         # Each chain can have a different set of positions
         # so we need to sort the columns to make sure they are in the right order
         # this is using the correct Position sorting
-        prop_columns = [c for c in df.columns if not isinstance(c, Position)]
-        position_columns = sorted([c for c in df.columns if isinstance(c, Position)])
-        df = df[prop_columns + position_columns]
+        columns = set(c for series in series_list for c in series.index)
+        prop_columns = [c for c in columns if not isinstance(c, Position)]
+        position_columns = sorted([c for c in columns if isinstance(c, Position)])
+        # Columns can come from K and L chain, so we need to convert them to string and remove duplicates here
+        position_columns_str = pd.Series(
+            [pos.format(chain_type=False) for pos in position_columns]
+        ).drop_duplicates().to_list()
 
-        # Finally convert position columns to string
-        df.columns = df.columns.map(lambda pos: pos.format(chain_type=False))
+        # Get full list of string columns
+        columns_str = prop_columns + position_columns_str
+
+        # Reindex each series using ordered list of string columns
+        series_list_ordered = []
+        for series in series_list:
+            series.index = series.index.map(lambda pos: pos.format(chain_type=False))
+            series_list_ordered.append(series.reindex(columns_str))
+
+        df = pd.DataFrame(series_list_ordered)[columns_str].fillna('-')
+        df.index.name = 'Id'
 
         return df
 
@@ -363,8 +375,10 @@ class Chain:
             if letters.strip():
                 lines.append(letters)
         lines.append(self.seq)
-        # TODO lines.append(''.join('^' if pos.is_in_cdr() else ("°" if pos.is_in_vernier() else ' ') for pos in self.positions))
-        lines.append(''.join('^' if pos.is_in_cdr() else ' ' for pos in self.positions))
+        if self.scheme == 'kabat':
+            lines.append(''.join('^' if pos.is_in_cdr() else ("°" if pos.is_in_vernier() else ' ') for pos in self.positions))
+        else:
+            lines.append(''.join('^' if pos.is_in_cdr() else ' ' for pos in self.positions))
         return '\n'.join(lines)
 
     def print_wide(self, numbering=False):
@@ -488,10 +502,12 @@ class Chain:
             cdr_definition=cdr_definition or scheme or self.cdr_definition
         )
 
-    def graft_cdrs_onto(self, other: 'Chain', name: str = None) -> 'Chain':
+    def graft_cdrs_onto(self, other: 'Chain', backmutate_vernier=False, backmutations: List['Position'] = [], name: str = None) -> 'Chain':
         """Graft CDRs from this Chain onto another chain
 
         :param other: Chain to graft CDRs into (source of frameworks and tail sequence)
+        :param backmutate_vernier: Also graft all Vernier positions from this chain (perform backmutations)
+        :param backmutations: List of :class:`Position` objects that should additionally be grafted from this chain
         :param name: Name of new Chain. If not provided, use name of this chain.
         :return: Chain with CDRs grafted from this chain and frameworks from the given chain
         """
@@ -502,16 +518,45 @@ class Chain:
         assert self.chain_type == other.chain_type, \
             f'Sequences need to have the same chain type, got {self.chain_type} and {other.chain_type}'
 
-        grafted_dict = {}
-        for (self_region, self_dict), (other_region, other_dict) in zip(self.regions.items(), other.regions.items()):
-            assert self_region == other_region
-            if self_region.lower().startswith('cdr'):
-                grafted_dict.update(self_dict)
-            else:
-                grafted_dict.update(other_dict)
+        backmutations = [self._parse_position(pos) for pos in backmutations]
+
+        grafted_dict = {pos: aa for pos, aa in other if not pos.is_in_cdr()}
+        for pos, aa in self:
+            if pos.is_in_cdr() or (backmutate_vernier and pos.is_in_vernier()) or pos in backmutations:
+                grafted_dict[pos] = aa
 
         return Chain(sequence=None, aa_dict=grafted_dict, name=name or self.name, chain_type=self.chain_type,
                      scheme=self.scheme, cdr_definition=self.cdr_definition, tail=other.tail)
+
+    def graft_cdrs_onto_human_germline(self, v_gene=None, j_gene=None,
+                                       backmutate_vernier=False, backmutations: List['Position'] = []):
+        """Graft CDRs from this Chain onto TODO TODO
+
+        :param backmutate_vernier: Also graft all Vernier positions from this chain (perform backmutations)
+        :param backmutations: List of :class:`Position` objects that should additionally be grafted from this chain
+        :return: Chain with CDRs grafted from this chain and frameworks from TODO
+        """
+        v_chains, j_chains = self.find_human_germlines(limit=1, v_gene=v_gene, j_gene=j_gene)
+        v_chain = v_chains[0]
+        j_chain = j_chains[0]
+
+        merged_dict = {
+            **{pos: aa for pos, aa in j_chain},
+            **{pos: aa for pos, aa in v_chain}
+        }
+
+        chain = Chain(
+            sequence=None,
+            aa_dict=merged_dict,
+            chain_type=self.chain_type,
+            scheme='imgt',
+            tail=''
+        )
+
+        if self.scheme != 'imgt':
+            chain = chain.renumber(self.scheme, self.cdr_definition)
+
+        return self.graft_cdrs_onto(chain, backmutate_vernier=backmutate_vernier, backmutations=backmutations)
 
     def _parse_position(self, position: Union[int, str, 'Position'], allow_raw=False):
         """Create :class:`Position` key object from string or int.
@@ -541,10 +586,12 @@ class Chain:
         """Get Position object at corresponding raw numeric position"""
         return list(self.positions.keys())[index]
 
-    def find_human_germlines(self, limit=10) -> Tuple[List['Chain'], List['Chain']]:
+    def find_human_germlines(self, limit=10, v_gene=None, j_gene=None) -> Tuple[List['Chain'], List['Chain']]:
         """Find most identical germline sequences based on IMGT alignment
 
         :param limit: Number of best matching germlines to return
+        :param v_gene: Filter germlines to specific V gene name
+        :param j_gene: Filter germlines to specific J gene name
         :return: list of top V chains, list of top J chains
         """
         from abnumber.germlines import get_imgt_v_chains, get_imgt_j_chains
@@ -552,6 +599,18 @@ class Chain:
         chain = self if self.scheme == 'imgt' and self.cdr_definition == 'imgt' else self.renumber('imgt')
         v_chains = list(get_imgt_v_chains(chain.chain_type).values())
         j_chains = list(get_imgt_j_chains(chain.chain_type).values())
+
+        if v_gene:
+            v_chains = [chain for chain in v_chains if chain.name.startswith(v_gene)]
+            if not v_chains:
+                print('Available V genes:', get_imgt_v_chains(chain.chain_type).keys())
+                raise ValueError(f'No V genes found for gene name "{v_gene}"')
+
+        if j_gene:
+            j_chains = [chain for chain in j_chains if chain.name.startswith(j_gene)]
+            if not j_chains:
+                print('Available J genes:', get_imgt_j_chains(chain.chain_type).keys())
+                raise ValueError(f'No J genes found for gene name "{j_gene}"')
 
         v_alignments = [chain.align(germline) for germline in v_chains]
         v_ranks = np.array([alignment.num_mutations() for alignment in v_alignments]).argsort()[:limit]
@@ -797,8 +856,10 @@ class Alignment:
                 lines.append(''.join(_identity_symbol(aas[i], aas[i-1]) for pos, aas in self))
             lines.append(''.join(aas[i] for pos, aas in self))
         if mark_cdrs:
-            # TODO lines.append(''.join('^' if pos.is_in_cdr() else ("°" if pos.is_in_vernier() else ' ') for pos in self.positions))
-            lines.append(''.join('^' if pos.is_in_cdr() else ' ' for pos in self.positions))
+            if self.positions[0].cdr_definition == 'kabat':
+                lines.append(''.join('^' if pos.is_in_cdr() else ("°" if pos.is_in_vernier() else ' ') for pos in self.positions))
+            else:
+                lines.append(''.join('^' if pos.is_in_cdr() else ' ' for pos in self.positions))
         return '\n'.join(lines)
 
     def print(self, mark_identity=True, mark_cdrs=True):
@@ -956,7 +1017,7 @@ class Position:
             pass
         else:
             raise NotImplementedError(f'Cannot compare positions of scheme: {self.scheme}')
-        return self.number, letter_ord
+        return self.is_heavy_chain(), self.number, letter_ord
 
     def get_region(self):
         """Get string name of this position's region
@@ -975,7 +1036,7 @@ class Position:
         return self.get_region().lower().startswith('cdr')
 
     def is_in_vernier(self):
-        # FIXME
+        # FIXME, and fix format function
         if self.cdr_definition != 'kabat':
             raise NotImplementedError('Vernier zone identification is currently supported '
                                       f'only with Kabat CDR definitions, got: {self.cdr_definition}')

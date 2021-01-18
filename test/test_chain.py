@@ -85,6 +85,16 @@ QVQLVQSGAELDRPGATVKMSCKASGYTTTRYTMHWVKQRPGQGLDWIGYINPSDRSYTNYNQKFKDKATLTTDKSSSTA
     assert alignment.raw[105] == ('E', '-')
 
 
+def test_same_scheme_different_cdr_definition_positions_are_equal():
+    seq = 'EVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYSEDDERGHYCLDYWGQGTTLTVSS'
+    chain1 = Chain(seq, scheme='imgt', cdr_definition='imgt')
+    chain2 = Chain(seq, scheme='imgt', cdr_definition='kabat')
+
+    position1 = list(chain1.positions)[0]
+    position2 = list(chain2.positions)[0]
+    assert position1 == position2, 'Positions with same numbering scheme should be equal no matter the CDR definition'
+
+
 def test_position_hashing():
     seq = 'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS'
     chain_imgt_def = Chain(seq, scheme='imgt', cdr_definition='imgt')
