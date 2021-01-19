@@ -375,7 +375,7 @@ class Chain:
             if letters.strip():
                 lines.append(letters)
         lines.append(self.seq)
-        if self.scheme == 'kabat':
+        if self.cdr_definition == 'kabat':
             lines.append(''.join('^' if pos.is_in_cdr() else ("°" if pos.is_in_vernier() else ' ') for pos in self.positions))
         else:
             lines.append(''.join('^' if pos.is_in_cdr() else ' ' for pos in self.positions))
@@ -536,27 +536,12 @@ class Chain:
         :param backmutations: List of :class:`Position` objects that should additionally be grafted from this chain
         :return: Chain with CDRs grafted from this chain and frameworks from TODO
         """
-        v_chains, j_chains = self.find_human_germlines(limit=1, v_gene=v_gene, j_gene=j_gene)
-        v_chain = v_chains[0]
-        j_chain = j_chains[0]
-
-        merged_dict = {
-            **{pos: aa for pos, aa in j_chain},
-            **{pos: aa for pos, aa in v_chain}
-        }
-
-        chain = Chain(
-            sequence=None,
-            aa_dict=merged_dict,
-            chain_type=self.chain_type,
-            scheme='imgt',
-            tail=''
-        )
+        germline_chain = self.find_merged_human_germline(v_gene=v_gene, j_gene=j_gene)
 
         if self.scheme != 'imgt':
-            chain = chain.renumber(self.scheme, self.cdr_definition)
+            germline_chain = germline_chain.renumber(self.scheme, self.cdr_definition)
 
-        return self.graft_cdrs_onto(chain, backmutate_vernier=backmutate_vernier, backmutations=backmutations)
+        return self.graft_cdrs_onto(germline_chain, backmutate_vernier=backmutate_vernier, backmutations=backmutations)
 
     def _parse_position(self, position: Union[int, str, 'Position'], allow_raw=False):
         """Create :class:`Position` key object from string or int.
@@ -587,7 +572,7 @@ class Chain:
         return list(self.positions.keys())[index]
 
     def find_human_germlines(self, limit=10, v_gene=None, j_gene=None) -> Tuple[List['Chain'], List['Chain']]:
-        """Find most identical germline sequences based on IMGT alignment
+        """Find most identical V and J germline sequences based on IMGT alignment
 
         :param limit: Number of best matching germlines to return
         :param v_gene: Filter germlines to specific V gene name
@@ -621,6 +606,31 @@ class Chain:
         top_j_chains = [j_chains[r] for r in j_ranks]
 
         return top_v_chains, top_j_chains
+
+    def find_merged_human_germline(self, top=0, v_gene=None, j_gene=None) -> 'Chain':
+        """Find n-th most identical V and J germline sequence based on IMGT alignment and merge them into one Chain
+
+        :param top: Return top N most identical germline (0-indexed)
+        :param v_gene: Filter germlines to specific V gene name
+        :param j_gene: Filter germlines to specific J gene name
+        :return: merged germline sequence Chain object
+        """
+        v_chains, j_chains = self.find_human_germlines(limit=top+1, v_gene=v_gene, j_gene=j_gene)
+        v_chain = v_chains[top]
+        j_chain = j_chains[top]
+
+        merged_dict = {
+            **{pos: aa for pos, aa in j_chain},
+            **{pos: aa for pos, aa in v_chain}
+        }
+
+        return Chain(
+            sequence=None,
+            aa_dict=merged_dict,
+            chain_type=self.chain_type,
+            scheme='imgt',
+            tail=''
+        )
 
     @property
     def raw(self):

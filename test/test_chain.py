@@ -193,9 +193,9 @@ def test_scheme_and_cdr_definition(scheme, cdr_definition, seq_cdrs):
 def test_chain_renumber(scheme, cdr_definition):
     seq = 'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS'
 
-    assert Chain(seq, scheme=scheme, cdr_definition=cdr_definition) == Chain(seq, scheme='imgt').renumber(scheme)
-    assert Chain(seq, scheme=scheme, cdr_definition=cdr_definition) == Chain(seq, scheme='chothia').renumber(scheme)
-    assert Chain(seq, scheme=scheme, cdr_definition=cdr_definition) == Chain(seq, scheme='kabat').renumber(scheme)
+    assert Chain(seq, scheme=scheme, cdr_definition=cdr_definition) == Chain(seq, scheme='imgt').renumber(scheme, cdr_definition)
+    assert Chain(seq, scheme=scheme, cdr_definition=cdr_definition) == Chain(seq, scheme='chothia').renumber(scheme, cdr_definition)
+    assert Chain(seq, scheme=scheme, cdr_definition=cdr_definition) == Chain(seq, scheme='kabat').renumber(scheme, cdr_definition)
 
     assert Chain(seq, scheme=scheme, cdr_definition=cdr_definition).cdr3_seq == Chain(seq, scheme=scheme, cdr_definition='imgt').renumber(cdr_definition=cdr_definition).cdr3_seq
     assert Chain(seq, scheme=scheme, cdr_definition=cdr_definition).cdr3_seq == Chain(seq, scheme=scheme, cdr_definition='chothia').renumber(cdr_definition=cdr_definition).cdr3_seq
