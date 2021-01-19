@@ -329,13 +329,13 @@ class Chain:
         """Print string representation using :meth:`Chain.format_tall`
 
         >>> chain.print_tall()
-        FW1 H1    Q
-        FW1 H2    V
-        FW1 H3    Q
-        FW1 H4    L
-        FW1 H5    Q
-        FW1 H6    Q
-        FW1 H7    S
+        FR1 H1    Q
+        FR1 H2    V
+        FR1 H3    Q
+        FR1 H4    L
+        FR1 H5    Q
+        FR1 H6    Q
+        FR1 H7    S
         ...
         """
         print(self.format_tall(columns=columns))
@@ -657,18 +657,18 @@ class Chain:
     def regions(self):
         """Dictionary of region dictionaries
 
-        Region is an uppercase string, one of: ``"FW1", "CDR1", "FW2", "CDR2", "FW3", "CDR3", "FW4"``
+        Region is an uppercase string, one of: ``"FR1", "CDR1", "FR2", "CDR2", "FR3", "CDR3", "FR4"``
 
         :return: Dictionary of Region name -> Dictionary of (:class:`Position` -> Amino acid)
         """
         return OrderedDict(
-            FW1=self.fr1_dict,
+            FR1=self.fr1_dict,
             CDR1=self.cdr1_dict,
-            FW2=self.fr2_dict,
+            FR2=self.fr2_dict,
             CDR2=self.cdr2_dict,
-            FW3=self.fr3_dict,
+            FR3=self.fr3_dict,
             CDR3=self.cdr3_dict,
-            FW4=self.fr4_dict
+            FR4=self.fr4_dict
         )
 
     @property
