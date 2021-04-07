@@ -57,6 +57,16 @@ def germline_to_chain(positions, seq, chain_type, **kwargs):
     }, **kwargs)
 
 
+def get_germline_v_families(chain_type):
+    names = HUMAN_IMGT_IG_V[chain_type]['aligned_sequences'].keys()
+    return sorted(set([name.split('-')[0].split('/')[0] for name in names]))
+
+
+def get_germline_v_genes(chain_type):
+    names = HUMAN_IMGT_IG_V[chain_type]['aligned_sequences'].keys()
+    return sorted(set([name.split('*')[0] for name in names]))
+
+
 HUMAN_IMGT_IG_V = {
     'H': {
         "positions": [

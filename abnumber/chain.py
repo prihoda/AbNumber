@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Union, List, Generator, Tuple
+from typing import Union, List, Generator, Tuple, Any
 import copy
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
@@ -19,7 +19,7 @@ from Bio.Seq import Seq
 import re
 
 POS_REGEX = re.compile(r'([HL]?)(\d+)([A-Z]?)')
-
+WHITESPACE = re.compile(r'\s+')
 
 class Chain:
     """
@@ -502,12 +502,12 @@ class Chain:
             cdr_definition=cdr_definition or scheme or self.cdr_definition
         )
 
-    def graft_cdrs_onto(self, other: 'Chain', backmutate_vernier=False, backmutations: List['Position'] = [], name: str = None) -> 'Chain':
+    def graft_cdrs_onto(self, other: 'Chain', backmutate_vernier=False, backmutations: List[Any['Position',str]] = [], name: str = None) -> 'Chain':
         """Graft CDRs from this Chain onto another chain
 
         :param other: Chain to graft CDRs into (source of frameworks and tail sequence)
-        :param backmutate_vernier: Also graft all Vernier positions from this chain (perform backmutations)
-        :param backmutations: List of :class:`Position` objects that should additionally be grafted from this chain
+        :param backmutate_vernier: Also graft all Kabat Vernier positions from this chain (perform backmutations)
+        :param backmutations: List of positions that should additionally be grafted from this chain (str or or :class:`Position`)
         :param name: Name of new Chain. If not provided, use name of this chain.
         :return: Chain with CDRs grafted from this chain and frameworks from the given chain
         """
@@ -529,16 +529,18 @@ class Chain:
                      scheme=self.scheme, cdr_definition=self.cdr_definition, tail=other.tail)
 
     def graft_cdrs_onto_human_germline(self, v_gene=None, j_gene=None,
-                                       backmutate_vernier=False, backmutations: List['Position'] = []):
-        """Graft CDRs from this Chain onto TODO TODO
+                                       backmutate_vernier=False, backmutations: List[Any['Position',str]] = []):
+        """Graft CDRs from this Chain onto the nearest human germline sequence
 
-        :param backmutate_vernier: Also graft all Vernier positions from this chain (perform backmutations)
-        :param backmutations: List of :class:`Position` objects that should additionally be grafted from this chain
+        :param v_gene: Use defined V germline allele (e.g. IGHV1-18*01), gene (e.g. IGHV1-18) or family (e.g. IGHV1)
+        :param j_gene: Use defined J germline allele (e.g. IGHJ1*01) or gene (e.g. IGHJ1)
+        :param backmutate_vernier: Also graft all Kabat Vernier positions from this chain (perform backmutations)
+        :param backmutations: List of positions that should additionally be grafted from this chain (str or or :class:`Position`)
         :return: Chain with CDRs grafted from this chain and frameworks from TODO
         """
         germline_chain = self.find_merged_human_germline(v_gene=v_gene, j_gene=j_gene)
 
-        if self.scheme != 'imgt':
+        if self.scheme != 'imgt' or self.cdr_definition != 'imgt':
             germline_chain = germline_chain.renumber(self.scheme, self.cdr_definition)
 
         return self.graft_cdrs_onto(germline_chain, backmutate_vernier=backmutate_vernier, backmutations=backmutations)
@@ -586,23 +588,27 @@ class Chain:
         j_chains = list(get_imgt_j_chains(chain.chain_type).values())
 
         if v_gene:
+            if v_gene.startswith('IGKV') and self.chain_type == 'L':
+                raise NotImplementedError('Cannot graft lambda chain into kappa chain')
+            if v_gene.startswith('IGLV') and self.chain_type == 'K':
+                raise NotImplementedError('Cannot graft kappa chain into lambda chain')
             v_chains = [chain for chain in v_chains if chain.name.startswith(v_gene)]
             if not v_chains:
                 print('Available V genes:', get_imgt_v_chains(chain.chain_type).keys())
-                raise ValueError(f'No V genes found for gene name "{v_gene}"')
+                raise ValueError(f'No V genes found for "{chain.chain_type}" chain gene name "{v_gene}"')
 
         if j_gene:
             j_chains = [chain for chain in j_chains if chain.name.startswith(j_gene)]
             if not j_chains:
                 print('Available J genes:', get_imgt_j_chains(chain.chain_type).keys())
-                raise ValueError(f'No J genes found for gene name "{j_gene}"')
+                raise ValueError(f'No J genes found for "{chain.chain_type}" chain gene name "{j_gene}"')
 
         v_alignments = [chain.align(germline) for germline in v_chains]
-        v_ranks = np.array([alignment.num_mutations() for alignment in v_alignments]).argsort()[:limit]
+        v_ranks = np.array([alignment.num_mutations() for alignment in v_alignments]).argsort(kind='stable')[:limit]
         top_v_chains = [v_chains[r] for r in v_ranks]
 
         j_alignments = [chain.align(germline) for germline in j_chains]
-        j_ranks = np.array([alignment.num_mutations() for alignment in j_alignments]).argsort()[:limit]
+        j_ranks = np.array([alignment.num_mutations() for alignment in j_alignments]).argsort(kind='stable')[:limit]
         top_j_chains = [j_chains[r] for r in j_ranks]
 
         return top_v_chains, top_j_chains
@@ -954,7 +960,8 @@ class Position:
         return copy.copy(self)
     
     def _key(self):
-        return self.chain_type, self.number, self.letter, self.scheme
+        # Note: We are not including chain_type, but just Heavy/Light flag, to keep Kappa and Lambda chain positions equal
+        return self.chain_type_prefix(), self.number, self.letter, self.scheme
 
     def __repr__(self):
         return f'{self.chain_type_prefix()}{self.number}{self.letter} ({self.scheme})'
@@ -1084,6 +1091,7 @@ def _validate_chain_type(chain_type):
 
 
 def _anarci_align(sequence, scheme, allowed_species) -> List[Tuple]:
+    sequence = re.sub(WHITESPACE, '', sequence)
     all_numbered, all_ali, all_hits = anarci([('id', sequence)], scheme=scheme, allowed_species=allowed_species)
     seq_numbered = all_numbered[0]
     seq_ali = all_ali[0]

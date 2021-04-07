@@ -1,5 +1,5 @@
 import pytest
-from abnumber import Chain, ChainParseError
+from abnumber import Chain, ChainParseError, Position
 import numpy as np
 
 def test_light_chain_from_str():
@@ -108,6 +108,11 @@ def test_position_hashing():
     assert not(pos_imgt_def > pos_north_def), 'Position sorting should only be based on numbering scheme, not CDR definition'
     assert not(pos_imgt_def < pos_north_def), 'Position sorting should only be based on numbering scheme, not CDR definition'
     assert pos_imgt_def.cdr_definition != pos_north_def.cdr_definition
+
+    kappa_pos = Position(chain_type='K', number=1, letter='', scheme='imgt')
+    lambda_pos = Position(chain_type='L', number=1, letter='', scheme='imgt')
+    assert kappa_pos == lambda_pos
+    assert Position(chain_type='K', number=2, letter='', scheme='imgt') > lambda_pos
 
 
 @pytest.mark.parametrize("scheme", ['chothia', 'kabat', 'imgt'])
