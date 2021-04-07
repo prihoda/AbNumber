@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Union, List, Generator, Tuple, Any
+from typing import Union, List, Generator, Tuple
 import copy
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
@@ -502,7 +502,7 @@ class Chain:
             cdr_definition=cdr_definition or scheme or self.cdr_definition
         )
 
-    def graft_cdrs_onto(self, other: 'Chain', backmutate_vernier=False, backmutations: List[Any['Position',str]] = [], name: str = None) -> 'Chain':
+    def graft_cdrs_onto(self, other: 'Chain', backmutate_vernier=False, backmutations: List[Union['Position',str]] = [], name: str = None) -> 'Chain':
         """Graft CDRs from this Chain onto another chain
 
         :param other: Chain to graft CDRs into (source of frameworks and tail sequence)
@@ -529,7 +529,7 @@ class Chain:
                      scheme=self.scheme, cdr_definition=self.cdr_definition, tail=other.tail)
 
     def graft_cdrs_onto_human_germline(self, v_gene=None, j_gene=None,
-                                       backmutate_vernier=False, backmutations: List[Any['Position',str]] = []):
+                                       backmutate_vernier=False, backmutations: List[Union['Position',str]] = []):
         """Graft CDRs from this Chain onto the nearest human germline sequence
 
         :param v_gene: Use defined V germline allele (e.g. IGHV1-18*01), gene (e.g. IGHV1-18) or family (e.g. IGHV1)
