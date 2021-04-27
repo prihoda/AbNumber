@@ -62,14 +62,25 @@ class Chain:
     :param scheme: Numbering scheme: One of ``imgt``, ``chothia``, ``kabat``, ``aho``
     :param cdr_definition: Numbering scheme to be used for definition of CDR regions. Same as ``scheme`` by default.
                            One of ``imgt``, ``chothia``, ``kabat``, ``north``. Required for ``aho``.
-    :param allowed_species: ``None`` to allow all species, or one or more of: ``'human', 'mouse','rat','rabbit','rhesus','pig','alpaca'``
-    :param aa_dict: Create Chain object directly from dictionary of region objects (internal use)
-    :param tail: Constant region sequence
-    :param species: Species as identified by ANARCI
+    :param assign_germline: Assign germline name using ANARCI based on best sequence identity
+    :param allowed_species: Allowed species for germline assignment. Use ``None`` to allow all species, or one or more of: ``'human', 'mouse','rat','rabbit','rhesus','pig','alpaca'``
+    :param aa_dict: (Internal use only) Create Chain object directly from dictionary of region objects (internal use)
+    :param tail: (Internal use only) Constant region sequence
+    :param species: (Internal use only) Species as identified by ANARCI
+    :param germline: (Internal use only) Germline as identified by ANARCI
     """
 
-    def __init__(self, sequence, scheme, cdr_definition=None, name=None, allowed_species=None, aa_dict=None, chain_type=None, tail=None, species=None):
-
+    def __init__(self, sequence, scheme, cdr_definition=None, name=None, assign_germline=False, allowed_species=None, **kwargs):
+        aa_dict = kwargs.pop('aa_dict', None)
+        chain_type = kwargs.pop('chain_type', None)
+        tail = kwargs.pop('tail', None)
+        species = kwargs.pop('species', None)
+        v_gene = kwargs.pop('v_gene', None)
+        j_gene = kwargs.pop('j_gene', None)
+        if isinstance(allowed_species, str):
+            allowed_species = [allowed_species]
+        if len(kwargs):
+            raise TypeError(f'Argument not recognized: {", ".join(kwargs)}')
         if aa_dict is not None:
             if sequence is not None:
                 raise ChainParseError('Only one of aa_dict= and sequence= can be provided')
@@ -87,10 +98,10 @@ class Chain:
                 raise ChainParseError('Do not use tail= when providing sequence=, it will be inferred automatically')
             if isinstance(sequence, Seq):
                 sequence = str(sequence)
-            results = _anarci_align(sequence, scheme=scheme, allowed_species=allowed_species)
+            results = _anarci_align(sequence, scheme=scheme, allowed_species=allowed_species, assign_germline=assign_germline)
             if len(results) > 1:
                 raise ChainParseError(f'Found {len(results)} antibody domains in sequence: "{sequence}"')
-            aa_dict, chain_type, tail, species = results[0]
+            aa_dict, chain_type, tail, species, v_gene, j_gene = results[0]
 
         _validate_chain_type(chain_type)
 
@@ -109,6 +120,10 @@ class Chain:
         """Constant region sequence"""
         self.species: str = species
         """Species as identified by ANARCI"""
+        self.v_gene: str = v_gene
+        """V gene germline as identified by ANARCI (if assign_germline is True)"""
+        self.j_gene: str = j_gene
+        """J gene germline as identified by ANARCI (if assign_germline is True)"""
 
         self.fr1_dict = OrderedDict()
         self.cdr1_dict = OrderedDict()
@@ -483,7 +498,9 @@ class Chain:
             chain_type=self.chain_type,
             cdr_definition=self.cdr_definition,
             tail=self.tail,
-            species=self.species
+            species=self.species,
+            v_gene=self.v_gene,
+            j_gene=self.j_gene
         )
 
     def renumber(self, scheme=None, cdr_definition=None, allowed_species=None):
@@ -499,7 +516,8 @@ class Chain:
             name=self.name,
             allowed_species=allowed_species,
             scheme=scheme or self.scheme,
-            cdr_definition=cdr_definition or scheme or self.cdr_definition
+            cdr_definition=cdr_definition or scheme or self.cdr_definition,
+            assign_germline=self.v_gene is not None
         )
 
     def graft_cdrs_onto(self, other: 'Chain', backmutate_vernier=False, backmutations: List[Union['Position',str]] = [], name: str = None) -> 'Chain':
@@ -526,7 +544,8 @@ class Chain:
                 grafted_dict[pos] = aa
 
         return Chain(sequence=None, aa_dict=grafted_dict, name=name or self.name, chain_type=self.chain_type,
-                     scheme=self.scheme, cdr_definition=self.cdr_definition, tail=other.tail)
+                     scheme=self.scheme, cdr_definition=self.cdr_definition, tail=other.tail,
+                     v_gene=other.v_gene, j_gene=other.j_gene)
 
     def graft_cdrs_onto_human_germline(self, v_gene=None, j_gene=None,
                                        backmutate_vernier=False, backmutations: List[Union['Position',str]] = []):
@@ -1090,9 +1109,14 @@ def _validate_chain_type(chain_type):
         f'Invalid chain type "{chain_type}", it should be "H" (heavy),  "L" (lambda light chian) or "K" (kappa light chain)'
 
 
-def _anarci_align(sequence, scheme, allowed_species) -> List[Tuple]:
+def _anarci_align(sequence, scheme, allowed_species, assign_germline=False) -> List[Tuple]:
     sequence = re.sub(WHITESPACE, '', sequence)
-    all_numbered, all_ali, all_hits = anarci([('id', sequence)], scheme=scheme, allowed_species=allowed_species)
+    all_numbered, all_ali, all_hits = anarci(
+        [('id', sequence)],
+        scheme=scheme,
+        allowed_species=allowed_species,
+        assign_germline=assign_germline
+    )
     seq_numbered = all_numbered[0]
     seq_ali = all_ali[0]
     if seq_numbered is None:
@@ -1102,10 +1126,12 @@ def _anarci_align(sequence, scheme, allowed_species) -> List[Tuple]:
     for (positions, start, end), ali in zip(seq_numbered, seq_ali):
         chain_type = ali['chain_type']
         species = ali['species']
+        v_gene = ali['germlines']['v_gene'][0][1] if assign_germline else None
+        j_gene = ali['germlines']['j_gene'][0][1] if assign_germline else None
         aa_dict = {Position(chain_type=chain_type, number=num, letter=letter, scheme=scheme): aa
                    for (num, letter), aa in positions if aa != '-'}
         tail = sequence[end+1:]
-        results.append((aa_dict, chain_type, tail, species))
+        results.append((aa_dict, chain_type, tail, species, v_gene, j_gene))
     return results
 
 

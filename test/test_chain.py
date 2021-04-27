@@ -212,3 +212,28 @@ def test_multiple_domains():
     vl = 'ELVMTQSPSSLSASVGDRVNIACRASQGISSALAWYQQKPGKAPRLLIYDASNLESGVPSRFSGSGSGTDFTLTISSLQPEDFAIYYCQQFNSYPLTFGGGTKVEIK'
     with pytest.raises(ChainParseError):
         chain = Chain(vh + vl, 'imgt')
+
+
+def test_germline_assignment():
+    light_seq = 'ELVMTQSPSSLSASVGDRVNIACRASQGISSALAWYQQKPGKAPRLLIYDASNLESGVPSRFSGSGSGTDFTLTISSLQPEDFAIYYCQQFNSYPLTFGGGTKVEIK'
+    light_chain = Chain(light_seq, scheme='imgt', assign_germline=True)
+    assert light_chain.v_gene == 'IGKV1-13*02'
+    assert light_chain.j_gene == 'IGKJ4*01'
+    light_chain = Chain(light_seq, scheme='imgt', assign_germline=True, allowed_species='mouse')
+    assert light_chain.v_gene == 'IGKV11-125*01'
+    assert light_chain.j_gene == 'IGKJ1*01'
+
+    heavy_seq = 'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS'
+    heavy_chain = Chain(heavy_seq, scheme='imgt', assign_germline=True)
+    assert heavy_chain.v_gene == 'IGHV1-4*01'
+    assert heavy_chain.j_gene == 'IGHJ2*01'
+    heavy_chain = Chain(heavy_seq, scheme='imgt', assign_germline=True, allowed_species='alpaca')
+    assert heavy_chain.v_gene == 'IGHV3S1*01'
+    assert heavy_chain.j_gene == 'IGHJ4*01'
+
+    assert heavy_chain.raw[:10].v_gene == heavy_chain.v_gene
+    assert heavy_chain.raw[:10].j_gene == heavy_chain.j_gene
+
+    chain_without_germline = Chain(heavy_seq, scheme='imgt', assign_germline=False)
+    assert chain_without_germline.v_gene is None
+    assert chain_without_germline.j_gene is None
