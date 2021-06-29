@@ -1,5 +1,8 @@
 # AbNumber
 
+[![BioConda Install](https://img.shields.io/conda/dn/bioconda/abnumber.svg?style=flag&label=BioConda%20install&color=green)](https://anaconda.org/bioconda/abnumber) 
+[![Docs](https://readthedocs.org/projects/pip/badge/?version=latest&style=flat)](http://abnumber.readthedocs.org/)
+
 Convenience Python APIs for antibody numbering using [ANARCI](https://github.com/oxpig/ANARCI)
 
 ## Installation
