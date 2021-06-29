@@ -28,6 +28,7 @@ def get_imgt_chain(gene_name):
 
     return chains[gene_name]
 
+
 def get_imgt_v_chains(chain_type=None):
     global _HUMAN_IMGT_V_CHAINS
     if _HUMAN_IMGT_V_CHAINS is None:
