@@ -4,9 +4,20 @@
 [![BioConda Install](https://img.shields.io/conda/dn/bioconda/abnumber.svg?style=flag&label=BioConda%20install&color=green)](https://anaconda.org/bioconda/abnumber) 
 [![Docs](https://readthedocs.org/projects/pip/badge/?version=latest&style=flat)](http://abnumber.readthedocs.org/)
 
-Convenience Python APIs for antibody numbering using [ANARCI](https://github.com/oxpig/ANARCI)
+Convenience Python APIs for antibody numbering and alignment using [ANARCI](https://github.com/oxpig/ANARCI)
 
 Try it out in your browser using Binder: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/prihoda/AbNumber/HEAD?filepath=examples%2FAbNumber_getting_started.ipynb)
+
+## Features:
+
+- **Streamlined Python API** using `Chain` object
+- **Identifying CDR regions**, e.g. using `chain.regions` or `chain.cdr3_seq`
+- **Indexing and slicing**, e.g. using `chain['5']` or `chain['H2':'H5']`
+- **Pairwise and multiple sequence alignment** in the given numbering using `chain.align(another)`
+- **Alignment to nearest human germline** using `chain.align(chain.find_merged_human_germline())`
+- **Humanization using CDR grafting** by `chain.graft_cdrs_onto_human_germline()`
+
+See [AbNumber Documentation](https://abnumber.readthedocs.io/en/latest/) for the full reference.
 
 ## Installation
 
@@ -14,10 +25,6 @@ Install using Bioconda:
 ```bash
 conda install -c bioconda abnumber
 ```
-
-## Documentation
-
-See [AbNumber Documentation](https://abnumber.readthedocs.io/en/latest/)
 
 ## Examples
 
