@@ -2,6 +2,8 @@
 
 Convenience Python APIs for antibody numbering using [ANARCI](https://github.com/oxpig/ANARCI)
 
+Try it out in your browser using Binder: [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/prihoda/AbNumber/HEAD?filepath=examples%2FAbNumber_getting_started.ipynb)
+
 ## Installation
 
 Install using Bioconda:

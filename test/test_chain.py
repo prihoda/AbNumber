@@ -214,14 +214,6 @@ def test_multiple_domains():
         chain = Chain(vh + vl, 'imgt')
 
 
-def test_imgt_61A():
-    """Related to ANARCI issue: https://github.com/oxpig/ANARCI/issues/14"""
-    assert Position.from_string('61A', 'H', 'imgt') > Position.from_string('61', 'H', 'imgt')
-    seq = 'EVQLVESGGGLVQPGGSLRLSCAASGIILDYYPIGWFRQAPGKEREGVAFITNSDDSTIYTNYADSVKGRFTISRDKNSLYLQMNSLRAEDTAVYYCSSKASFLIGKDDQGIDAGEYDYWGQGTMVTVSS'
-    with pytest.raises(NotImplementedError):
-        chain = Chain(seq, 'imgt')
-
-
 def test_germline_assignment():
     light_seq = 'ELVMTQSPSSLSASVGDRVNIACRASQGISSALAWYQQKPGKAPRLLIYDASNLESGVPSRFSGSGSGTDFTLTISSLQPEDFAIYYCQQFNSYPLTFGGGTKVEIK'
     light_chain = Chain(light_seq, scheme='imgt', assign_germline=True)

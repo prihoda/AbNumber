@@ -31,7 +31,7 @@ def get_imgt_chain(gene_name):
 
 def get_imgt_v_chains(chain_type=None):
     global _HUMAN_IMGT_V_CHAINS
-    if _HUMAN_IMGT_V_CHAINS is None:
+    if _HUMAN_IMGT_V_CHAINS is None or chain_type not in _HUMAN_IMGT_V_CHAINS:
         _HUMAN_IMGT_V_CHAINS = {}
         for t, germlines in HUMAN_IMGT_IG_V.items():
             positions = germlines['positions']
@@ -42,7 +42,7 @@ def get_imgt_v_chains(chain_type=None):
 
 def get_imgt_j_chains(chain_type=None):
     global _HUMAN_IMGT_J_CHAINS
-    if _HUMAN_IMGT_J_CHAINS is None:
+    if _HUMAN_IMGT_J_CHAINS is None or chain_type not in _HUMAN_IMGT_J_CHAINS:
         _HUMAN_IMGT_J_CHAINS = {}
         for t, germlines in HUMAN_IMGT_IG_J.items():
             positions = germlines['positions']
