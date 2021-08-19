@@ -1,5 +1,6 @@
 # AbNumber
 
+[![Build & Test](https://github.com/prihoda/AbNumber/actions/workflows/build-test.yml/badge.svg)](https://github.com/prihoda/AbNumber/actions/workflows/build-test.yml)
 [![BioConda Install](https://img.shields.io/conda/dn/bioconda/abnumber.svg?style=flag&label=BioConda%20install&color=green)](https://anaconda.org/bioconda/abnumber) 
 [![Docs](https://readthedocs.org/projects/pip/badge/?version=latest&style=flat)](http://abnumber.readthedocs.org/)
 
@@ -25,11 +26,19 @@ from abnumber import Chain
 
 seq = 'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSSAKTTAPSVYPLA'
 chain = Chain(seq, scheme='imgt')
+
 chain
 # QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS
 #                          ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^
+
 chain.cdr3_seq
 # ARYYDDHYCLDY
+
+chain.print(numbering=True)
+# 0        1        2         3     4         5         6       7        8         9         10        11       12       
+# 12345678912345678901234567890567890123456789012345678923456789012456789012345678901234567890123456789023456789012345678
+# QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTLTVSS
+#                          ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^           
 ```
 
 Chain can be iterated:
