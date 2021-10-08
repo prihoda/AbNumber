@@ -85,6 +85,8 @@ class Chain:
                 raise ChainParseError('Expected sequence, got None')
             if not isinstance(sequence, str) and not isinstance(sequence, Seq):
                 raise ChainParseError(f'Expected string or Seq, got {type(sequence)}: {sequence}')
+            if '-' in sequence:
+                raise ChainParseError(f'Please provide an unaligned sequence, got: {sequence}')
             if chain_type is not None:
                 raise ChainParseError('Do not use chain_type= when providing sequence=, it will be inferred automatically')
             if tail is not None:
@@ -206,6 +208,7 @@ class Chain:
 
     @classmethod
     def to_fasta(cls, chains, path_or_fd, keep_tail=False, description=''):
+        """Save multiple chains to FASTA"""
         if isinstance(chains, Chain):
             records = chains.to_seq_record(keep_tail=keep_tail, description=description)
         else:
@@ -214,6 +217,7 @@ class Chain:
 
     @classmethod
     def from_fasta(cls, path_or_handle, scheme, cdr_definition=None, as_series=False, as_generator=False, **kwargs) -> Union[List['Chain'], pd.Series, Generator['Chain', None, None]]:
+        """Read multiple chains from FASTA"""
         generator = (cls(record.seq, name=record.name, scheme=scheme, cdr_definition=cdr_definition, **kwargs)
                      for record in SeqIO.parse(path_or_handle, 'fasta'))
         if as_generator:
@@ -224,6 +228,7 @@ class Chain:
         return chains
 
     def to_seq_record(self, keep_tail=False, description=''):
+        """Create BioPython SeqRecord object from this Chain"""
         if not self.name:
             raise ValueError('Name needs to be present to convert to a SeqRecord')
         seq = Seq(self.seq + self.tail if keep_tail else self.seq)
@@ -231,11 +236,17 @@ class Chain:
 
     @classmethod
     def to_anarci_csv(cls, chains: List['Chain'], path):
+        """Save multiple chains to ANARCI-like CSV"""
         df = cls.to_dataframe(chains)
         df.to_csv(path)
 
     @classmethod
     def to_dataframe(cls, chains: List['Chain']):
+        """Produce a Pandas dataframe with aligned chain sequences in the columns
+
+        Note: Contains only positions (columns) that are present in the provided chains,
+        so number of columns can differ based on the input.
+        """
         series_list = [chain.to_series() for chain in chains]
 
         # Each chain can have a different set of positions
