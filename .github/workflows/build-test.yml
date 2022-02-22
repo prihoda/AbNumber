@@ -29,24 +29,3 @@ jobs:
       run: |
         conda install pytest
         pytest test
-
-  build-windows:
-    runs-on: windows-latest
-    strategy:
-      max-parallel: 5
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
-    - name: Install dependencies
-      run: |
-        C:\Miniconda\condabin\conda.bat env update --file environment.yml --name base
-        C:\Miniconda\condabin\conda.bat init powershell
-        pip install . --no-deps
-    - name: Test with pytest
-      run: |
-        C:\Miniconda\condabin\conda.bat activate base
-        C:\Miniconda\condabin\conda.bat install pytest
-        pytest test
