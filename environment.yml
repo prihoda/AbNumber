@@ -7,4 +7,5 @@ dependencies:
   - python >= 3.6
   - pip
   - pandas
+  - biopython
   - anarci == 2020.04.23
