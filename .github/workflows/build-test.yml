@@ -42,7 +42,7 @@ jobs:
         python-version: 3.8
     - name: Install dependencies
       run: |
-        C:\Miniconda\condabin\conda.bat env update --file environment.yml --name base
+        C:\Miniconda\condabin\conda.bat install -c bioconda anarci==2020.04.23
         C:\Miniconda\condabin\conda.bat init powershell
         pip install . --no-deps
     - name: Test with pytest
