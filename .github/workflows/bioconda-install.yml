@@ -1,13 +1,12 @@
 name: Bioconda install
 
 on:
-  push:
   schedule:
   - cron:  '0 3 * * 1'
 
 
 jobs:
-  build-linux:
+  install-linux:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 5
@@ -26,23 +25,4 @@ jobs:
         conda install -c bioconda abnumber
     - name: Run tests
       run: |
-        python -c 'from abnumber import Chain'
-
-  build-windows:
-    runs-on: windows-latest
-    strategy:
-      max-parallel: 5
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
-    - name: Install dependencies
-      run: |
-        C:\Miniconda\condabin\conda.bat activate base
-        C:\Miniconda\condabin\conda.bat install -c bioconda abnumber
-    - name: Run tests
-      run: |
-        C:\Miniconda\condabin\conda.bat activate base
         python -c 'from abnumber import Chain'

@@ -26,6 +26,8 @@ Install using Bioconda:
 conda install -c bioconda abnumber
 ```
 
+Note: **Windows is not supported** due to [HMMER](https://github.com/EddyRivasLab/hmmer) dependency. AbNumber is currently only available on UNIX & MacOS. 
+
 ## Examples
 
 ```python
