@@ -4,6 +4,6 @@ channels:
   - conda-forge
 dependencies:
   # Dependencies for local setup only. Make sure to update meta.yml in bioconda channel.
-  - python >= 3.6
   - pip
-  - anarci
+  - pandas
+  - anarci == 2020.04.23
