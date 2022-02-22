@@ -6,6 +6,4 @@ dependencies:
   # Dependencies for local setup only. Make sure to update meta.yml in bioconda channel.
   - python >= 3.6
   - pip
-  - pandas
-  - biopython
-  - hmmer >=3.1
+  - anarci
