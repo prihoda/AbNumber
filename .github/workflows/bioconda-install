@@ -1,0 +1,48 @@
+name: Bioconda install
+
+on:
+  push:
+  schedule:
+  - cron:  '0 3 * * 1'
+
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 5
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Add conda to system path
+      run: |
+        # $CONDA is an environment variable pointing to the root of the miniconda directory
+        echo $CONDA/bin >> $GITHUB_PATH
+    - name: Install dependencies
+      run: |
+        conda install -c bioconda abnumber
+    - name: Run tests
+      run: |
+        python -c 'from abnumber import Chain'
+
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      max-parallel: 5
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        C:\Miniconda\condabin\conda.bat activate base
+        C:\Miniconda\condabin\conda.bat install -c bioconda abnumber
+    - name: Run tests
+      run: |
+        C:\Miniconda\condabin\conda.bat activate base
+        python -c 'from abnumber import Chain'
