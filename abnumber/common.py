@@ -40,12 +40,6 @@ def _anarci_align(sequence, scheme, allowed_species, assign_germline=False) -> L
         species = ali['species']
         v_gene = ali['germlines']['v_gene'][0][1] if assign_germline else None
         j_gene = ali['germlines']['j_gene'][0][1] if assign_germline else None
-        if scheme == 'imgt':
-            for (num, letter), aa in positions:
-                if str(num) == '61' and str(letter) == 'A':
-                    raise NotImplementedError(f'Cannot parse sequence "{sequence}", '
-                                              f'ANARCI numbering of IMGT position 61A is currently broken: '
-                                              f'https://github.com/oxpig/ANARCI/issues/14')
         aa_dict = {Position(chain_type=chain_type, number=num, letter=letter, scheme=scheme): aa
                    for (num, letter), aa in positions if aa != '-'}
         tail = sequence[end+1:]
