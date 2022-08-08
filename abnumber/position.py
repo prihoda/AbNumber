@@ -90,7 +90,7 @@ class Position:
     def _sort_key(self):
         letter_ord = ord(self.letter) if self.letter else 0
         if self.scheme == 'imgt':
-            if self.number == 112:
+            if self.number in [33, 61, 112]:
                 # position 112 is sorted in reverse
                 letter_ord = -letter_ord
         elif self.scheme in ['chothia', 'kabat', 'aho']:
