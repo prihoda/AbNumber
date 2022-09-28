@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Union, List, Generator, Tuple
+from typing import Union, List, Generator, Tuple, Optional, Literal
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 import pandas as pd
@@ -12,6 +12,11 @@ import numpy as np
 from Bio.Seq import Seq
 
 from abnumber.position import Position
+
+
+ValidSchemes = Literal['imgt', 'chothia', 'kabat', 'aho']
+ValidCDRDefs = Literal['imgt', 'chothia', 'kabat', 'north']
+ValidSpecies = Literal['human', 'mouse', 'rat', 'rabbit', 'rhesus', 'pig', 'alpaca']
 
 
 class Chain:
@@ -63,7 +68,7 @@ class Chain:
     :param germline: (Internal use only) Germline as identified by ANARCI
     """
 
-    def __init__(self, sequence, scheme, cdr_definition=None, name=None, assign_germline=False, allowed_species=None, **kwargs):
+    def __init__(self, sequence: str, scheme: Optional[ValidSchemes], cdr_definition: Optional[ValidCDRDefs] = None, name: Optional[str] = None, assign_germline=False, allowed_species: Optional[ValidSpecies] = None, **kwargs):
         aa_dict = kwargs.pop('aa_dict', None)
         chain_type = kwargs.pop('chain_type', None)
         tail = kwargs.pop('tail', None)

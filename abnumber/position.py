@@ -1,5 +1,5 @@
 import copy
-from typing import List, Union
+from typing import List
 
 from abnumber.common import _validate_chain_type, SCHEME_POSITION_TO_REGION, SCHEME_VERNIER, POS_REGEX
 
@@ -147,7 +147,7 @@ class Position:
         return self.chain_type in 'KL'
 
 
-def sort_positions(positions: List[str], chain_type: str, scheme: str) -> List:
+def sort_positions(positions: List[str], chain_type: str, scheme: str) -> List[str]:
     """Sort position strings to correct order based on given scheme"""
     has_prefix = [p.startswith('H') or p.startswith('L') for p in positions]
     assert all(has_prefix) or not any(has_prefix), 'Inconsistent position prefix'

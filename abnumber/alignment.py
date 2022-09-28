@@ -1,4 +1,4 @@
-from typing import Union
+from typing import List, Union
 
 from abnumber.common import is_similar_residue, is_integer
 from abnumber.position import Position
@@ -28,7 +28,7 @@ class Alignment:
     ...
 
     """
-    def __init__(self, positions, residues, scheme, chain_type):
+    def __init__(self, positions: List, residues: List, scheme, chain_type):
         assert isinstance(positions, list), 'Expected list of positions and residues. ' \
                                             'Use chain.align(other) to create an alignment.'
         assert len(positions) == len(residues)
@@ -58,7 +58,7 @@ class Alignment:
         raw_pos = self.positions.index(pos)
         return self.residues[raw_pos]
 
-    def slice(self, start: Union[str, int, 'Position'] = None, stop: Union[str, int, 'Position'] = None,
+    def slice(self, start: Union[str, int, 'Position', None] = None, stop: Union[str, int, 'Position', None] = None,
               stop_inclusive: bool = True, allow_raw: bool = False):
         """Create a slice of this alignment
 
