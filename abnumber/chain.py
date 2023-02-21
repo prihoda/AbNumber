@@ -137,7 +137,7 @@ class Chain:
             raise ValueError('CDR regions are not defined for AHo, '
                              'you need to specify cdr_definition="chothia" or another scheme for CDR extraction.')
         if self.cdr_definition not in SUPPORTED_CDR_DEFINITIONS:
-            raise NotImplementedError(f'CDR definition "{self.scheme}" is not supported. Available definitions: {", ".join(SUPPORTED_SCHEMES)}')
+            raise NotImplementedError(f'CDR definition "{self.cdr_definition}" is not supported. Available definitions: {", ".join(SUPPORTED_SCHEMES)}')
         # list of region start positions
         borders = SCHEME_BORDERS[self.cdr_definition] if self.cdr_definition in SCHEME_BORDERS else SCHEME_BORDERS[f'{self.cdr_definition}_{self.chain_type}']
 
