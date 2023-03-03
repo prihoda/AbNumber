@@ -2,6 +2,7 @@ from typing import Union
 
 from abnumber.common import is_similar_residue, is_integer
 from abnumber.position import Position
+import itertools
 
 
 class Alignment:
@@ -161,6 +162,11 @@ class Alignment:
     def num_identical(self):
         """Get number of positions with identical residues"""
         return sum(len(set(aas)) == 1 for aas in self.residues)
+
+    def num_similar(self):
+        """Get number of positions with similar residues based on BLOSUM62"""
+        return sum(len(set(aas)) == 1 or all(is_similar_residue(a, b) for a, b in itertools.combinations(set(aas), 2))
+                   for aas in self.residues)
 
     @property
     def raw(self):
