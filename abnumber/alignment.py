@@ -158,6 +158,10 @@ class Alignment:
         """Get number of mutations (positions with more than one type of residue)"""
         return sum(len(set(aas)) != 1 for aas in self.residues)
 
+    def num_identical(self):
+        """Get number of positions with identical residues"""
+        return sum(len(set(aas)) == 1 for aas in self.residues)
+
     @property
     def raw(self):
         """Access raw representation of this alignment to allow unaligned numeric indexing and slicing
