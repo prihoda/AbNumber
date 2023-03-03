@@ -237,3 +237,13 @@ def test_germline_assignment():
     chain_without_germline = Chain(heavy_seq, scheme='imgt', assign_germline=False)
     assert chain_without_germline.v_gene is None
     assert chain_without_germline.j_gene is None
+
+
+def test_nearest_j_region():
+    heavy_seq = 'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTVTVSS'
+    heavy_chain = Chain(heavy_seq, scheme='imgt')
+
+    nearest_v, nearest_j = heavy_chain.find_human_germlines(1)
+
+    assert nearest_j[0].name == 'IGHJ6*01'
+

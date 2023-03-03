@@ -632,11 +632,11 @@ class Chain:
             j_chains = _get_unique_chains(j_chains)
 
         v_alignments = [chain.align(germline) for germline in v_chains]
-        v_ranks = np.array([alignment.num_mutations() for alignment in v_alignments]).argsort(kind='stable')[:limit]
+        v_ranks = np.array([-alignment.num_identical() - (alignment.num_similar() * 0.01) for alignment in v_alignments]).argsort(kind='stable')[:limit]
         top_v_chains = [v_chains[r] for r in v_ranks]
 
         j_alignments = [chain.align(germline) for germline in j_chains]
-        j_ranks = np.array([alignment.num_mutations() for alignment in j_alignments]).argsort(kind='stable')[:limit]
+        j_ranks = np.array([-alignment.num_identical() - (alignment.num_similar() * 0.01) for alignment in j_alignments]).argsort(kind='stable')[:limit]
         top_j_chains = [j_chains[r] for r in j_ranks]
 
         return top_v_chains, top_j_chains
