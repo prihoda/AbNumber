@@ -20,31 +20,34 @@ def _validate_chain_type(chain_type):
         f'Invalid chain type "{chain_type}", it should be "H" (heavy),  "L" (lambda light chian) or "K" (kappa light chain)'
 
 
-def _anarci_align(sequence, scheme, allowed_species, assign_germline=False) -> List[Tuple]:
+def _anarci_align(sequences, scheme, allowed_species, assign_germline=False) -> List[List[Tuple]]:
     from abnumber.position import Position
-    sequence = re.sub(WHITESPACE, '', sequence)
+    assert isinstance(sequences, list), f'Expected list of sequences, got: {type(sequences)}'
     all_numbered, all_ali, all_hits = anarci(
-        [('id', sequence)],
+        [(f'id{i}', re.sub(WHITESPACE, '', sequence)) for i, sequence in enumerate(sequences)],
         scheme=scheme,
         allowed_species=allowed_species,
         assign_germline=assign_germline
     )
-    seq_numbered = all_numbered[0]
-    seq_ali = all_ali[0]
-    if seq_numbered is None:
-        raise ChainParseError(f'Variable chain sequence not recognized: "{sequence}"')
-    assert len(seq_numbered) == len(seq_ali), 'Unexpected ANARCI output'
-    results = []
-    for (positions, start, end), ali in zip(seq_numbered, seq_ali):
-        chain_type = ali['chain_type']
-        species = ali['species']
-        v_gene = ali['germlines']['v_gene'][0][1] if assign_germline else None
-        j_gene = ali['germlines']['j_gene'][0][1] if assign_germline else None
-        aa_dict = {Position(chain_type=chain_type, number=num, letter=letter, scheme=scheme): aa
-                   for (num, letter), aa in positions if aa != '-'}
-        tail = sequence[end+1:]
-        results.append((aa_dict, chain_type, tail, species, v_gene, j_gene))
-    return results
+    all_results = []
+    for sequence, seq_numbered, seq_ali in zip(sequences, all_numbered, all_ali):
+        if seq_numbered is None:
+            # Variable chain sequence not recognized
+            all_results.append([])
+            continue
+        assert len(seq_numbered) == len(seq_ali), 'Unexpected ANARCI output'
+        results = []
+        for (positions, start, end), ali in zip(seq_numbered, seq_ali):
+            chain_type = ali['chain_type']
+            species = ali['species']
+            v_gene = ali['germlines']['v_gene'][0][1] if assign_germline else None
+            j_gene = ali['germlines']['j_gene'][0][1] if assign_germline else None
+            aa_dict = {Position(chain_type=chain_type, number=num, letter=letter, scheme=scheme): aa
+                       for (num, letter), aa in positions if aa != '-'}
+            tail = sequence[end+1:]
+            results.append((aa_dict, chain_type, tail, species, v_gene, j_gene))
+        all_results.append(results)
+    return all_results
 
 
 def _get_unique_chains(chains):

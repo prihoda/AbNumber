@@ -1,7 +1,5 @@
 from collections import OrderedDict
 from typing import Union, List, Generator, Tuple
-from Bio import SeqIO
-from Bio.SeqRecord import SeqRecord
 import pandas as pd
 
 from abnumber.alignment import Alignment
@@ -9,6 +7,8 @@ from abnumber.common import _anarci_align, _validate_chain_type, SUPPORTED_SCHEM
     is_integer, SCHEME_BORDERS, _get_unique_chains
 from abnumber.exceptions import ChainParseError
 import numpy as np
+from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 
 from abnumber.position import Position
@@ -83,6 +83,8 @@ class Chain:
         else:
             if sequence is None:
                 raise ChainParseError('Expected sequence, got None')
+            if isinstance(sequence, list):
+                raise ChainParseError('Expected string or Seq, got list. Please use Chain.batch() to parse multiple sequences')
             if not isinstance(sequence, str) and not isinstance(sequence, Seq):
                 raise ChainParseError(f'Expected string or Seq, got {type(sequence)}: {sequence}')
             if '-' in sequence:
@@ -93,7 +95,9 @@ class Chain:
                 raise ChainParseError('Do not use tail= when providing sequence=, it will be inferred automatically')
             if isinstance(sequence, Seq):
                 sequence = str(sequence)
-            results = _anarci_align(sequence, scheme=scheme, allowed_species=allowed_species, assign_germline=assign_germline)
+            results = _anarci_align([sequence], scheme=scheme, allowed_species=allowed_species, assign_germline=assign_germline)[0]
+            if not results:
+                raise ChainParseError(f'Variable chain sequence not recognized: "{sequence}"')
             if len(results) > 1:
                 raise ChainParseError(f'Found {len(results)} antibody domains in sequence: "{sequence}"')
             aa_dict, chain_type, tail, species, v_gene, j_gene = results[0]
@@ -157,10 +161,10 @@ class Chain:
         else:
             seq = ''.join(aa_dict[pos] for pos in sorted_positions)
             renumbered_aa_dict = _anarci_align(
-                seq,
+                [seq],
                 scheme=self.cdr_definition if self.cdr_definition != 'north' else 'chothia',
                 allowed_species=allowed_species
-            )[0][0]
+            )[0][0][0]
             cdr_definition_positions = [pos.number for pos in sorted(renumbered_aa_dict.keys())]
             combined_aa_dict = {}
             for orig_pos, cdr_definition_position in zip(sorted_positions, cdr_definition_positions):
@@ -177,6 +181,45 @@ class Chain:
             while pos.cdr_definition_position >= borders[region_idx]:
                 region_idx += 1
             regions_list[region_idx][pos] = aa
+
+    @classmethod
+    def batch(cls, seq_dict: dict, scheme: str, cdr_definition=None, assign_germline=False, allowed_species=None):
+        """Create multiple Chain objects from dict of sequences
+
+        :param seq_dict: Dictionary of sequence strings, keys are sequence identifiers
+        :param scheme: Numbering scheme to align the sequences
+        :param cdr_definition: Numbering scheme to be used for definition of CDR regions. Same as ``scheme`` by default.
+        :param assign_germline: Assign germline name using ANARCI based on best sequence identity
+        :param allowed_species: Allowed species for germline assignment. Use ``None`` to allow all species, or one or more of: ``'human', 'mouse','rat','rabbit','rhesus','pig','alpaca'``
+        :return: tuple with (dict of Chain objects, dict of error strings)
+        """
+        assert isinstance(seq_dict, dict), f'Expected dictionary of sequences, got: {type(seq_dict).__name__}'
+        names = list(seq_dict.keys())
+        seq_list = list(seq_dict.values())
+        all_results = _anarci_align(seq_list, scheme=scheme, allowed_species=allowed_species, assign_germline=assign_germline)
+        names = names or ([None] * len(seq_list))
+        chains = {}
+        errors = {}
+        for sequence, results, name in zip(seq_list, all_results, names):
+            if not results:
+                errors[name] = f'Variable chain sequence not recognized: "{sequence}"'
+            elif len(results) > 1:
+                errors[name] = f'Found {len(results)} antibody domains: "{sequence}"'
+            else:
+                aa_dict, chain_type, tail, species, v_gene, j_gene = results[0]
+                chains[name] = Chain(
+                    sequence=None,
+                    aa_dict=aa_dict,
+                    name=name,
+                    scheme=scheme,
+                    chain_type=chain_type,
+                    cdr_definition=cdr_definition,
+                    tail=tail,
+                    species=species,
+                    v_gene=v_gene,
+                    j_gene=j_gene
+                )
+        return chains, errors
 
     def __repr__(self):
         return self.format()
