@@ -194,6 +194,8 @@ class Chain:
         :return: tuple with (dict of Chain objects, dict of error strings)
         """
         assert isinstance(seq_dict, dict), f'Expected dictionary of sequences, got: {type(seq_dict).__name__}'
+        if not seq_dict:
+            return {}, {}
         names = list(seq_dict.keys())
         seq_list = list(seq_dict.values())
         all_results = _anarci_align(seq_list, scheme=scheme, allowed_species=allowed_species, assign_germline=assign_germline)
