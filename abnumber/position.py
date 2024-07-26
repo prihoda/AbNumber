@@ -116,10 +116,13 @@ class Position:
         return self.get_region().lower().startswith('cdr')
 
     def is_in_vernier(self):
-        if self.cdr_definition != 'kabat':
+        if self.scheme == 'kabat':
+            return self.number in SCHEME_VERNIER.get(f'{self.scheme}_{self.chain_type}', [])
+        elif self.cdr_definition == 'kabat':
+            return self.cdr_definition_position in SCHEME_VERNIER.get(f'{self.cdr_definition}_{self.chain_type}', [])
+        else:
             raise NotImplementedError('Vernier zone identification is currently supported '
-                                      f'only with Kabat CDR definitions, got: {self.cdr_definition}')
-        return self.cdr_definition_position in SCHEME_VERNIER.get(f'{self.cdr_definition}_{self.chain_type}', [])
+                                      f'only with Kabat numbering or CDR definitions, got: {self.scheme}+{self.cdr_definition}')
 
     @classmethod
     def from_string(cls, position, chain_type, scheme):
