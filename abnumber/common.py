@@ -37,14 +37,15 @@ def _anarci_align(sequences, scheme, allowed_species, assign_germline=False) -> 
             continue
         assert len(seq_numbered) == len(seq_ali), 'Unexpected ANARCI output'
         results = []
-        for (positions, start, end), ali in zip(seq_numbered, seq_ali):
+        for i, ((positions, start, end), ali) in enumerate(zip(seq_numbered, seq_ali)):
             chain_type = ali['chain_type']
             species = ali['species']
             v_gene = ali['germlines']['v_gene'][0][1] if assign_germline else None
             j_gene = ali['germlines']['j_gene'][0][1] if assign_germline else None
             aa_dict = {Position(chain_type=chain_type, number=num, letter=letter, scheme=scheme): aa
                        for (num, letter), aa in positions if aa != '-'}
-            tail = sequence[end+1:]
+            next_start = None if i == len(seq_numbered) - 1 else seq_numbered[i+1][1]
+            tail = sequence[end+1:next_start]
             results.append((aa_dict, chain_type, tail, species, v_gene, j_gene))
         all_results.append(results)
     return all_results

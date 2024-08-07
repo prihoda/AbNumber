@@ -1,3 +1,4 @@
+import warnings
 from collections import OrderedDict
 from typing import Union, List, Generator, Tuple
 import pandas as pd
@@ -5,7 +6,7 @@ import pandas as pd
 from abnumber.alignment import Alignment
 from abnumber.common import _anarci_align, _validate_chain_type, SUPPORTED_SCHEMES, SUPPORTED_CDR_DEFINITIONS, \
     is_integer, SCHEME_BORDERS, _get_unique_chains
-from abnumber.exceptions import ChainParseError
+from abnumber.exceptions import ChainParseError, MultipleDomainsChainParseError
 import numpy as np
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
@@ -99,7 +100,8 @@ class Chain:
             if not results:
                 raise ChainParseError(f'Variable chain sequence not recognized: "{sequence}"')
             if len(results) > 1:
-                raise ChainParseError(f'Found {len(results)} antibody domains in sequence: "{sequence}"')
+                warnings.warn('Use Chain.multiple_domains(seq) to parse ScFvs and other sequences with multiple antibody domains')
+                raise MultipleDomainsChainParseError(f'Found {len(results)} antibody domains in sequence: "{sequence}"')
             aa_dict, chain_type, tail, species, v_gene, j_gene = results[0]
 
         _validate_chain_type(chain_type)
@@ -183,7 +185,7 @@ class Chain:
             regions_list[region_idx][pos] = aa
 
     @classmethod
-    def batch(cls, seq_dict: dict, scheme: str, cdr_definition=None, assign_germline=False, allowed_species=None):
+    def batch(cls, seq_dict: dict, scheme: str, cdr_definition=None, assign_germline=False, allowed_species=None, multiple_domains=False):
         """Create multiple Chain objects from dict of sequences
 
         :param seq_dict: Dictionary of sequence strings, keys are sequence identifiers
@@ -191,6 +193,7 @@ class Chain:
         :param cdr_definition: Numbering scheme to be used for definition of CDR regions. Same as ``scheme`` by default.
         :param assign_germline: Assign germline name using ANARCI based on best sequence identity
         :param allowed_species: Allowed species for germline assignment. Use ``None`` to allow all species, or one or more of: ``'human', 'mouse','rat','rabbit','rhesus','pig','alpaca'``
+        :param multiple_domains: Allow parsing multiple domains in a sequence - return dict name -> list of one or more Chain items
         :return: tuple with (dict of Chain objects, dict of error strings)
         """
         assert isinstance(seq_dict, dict), f'Expected dictionary of sequences, got: {type(seq_dict).__name__}'
@@ -205,11 +208,11 @@ class Chain:
         for sequence, results, name in zip(seq_list, all_results, names):
             if not results:
                 errors[name] = f'Variable chain sequence not recognized: "{sequence}"'
-            elif len(results) > 1:
+            elif len(results) > 1 and not multiple_domains:
+                warnings.warn('Use multiple_domains=True to allow parsing ScFvs and other sequences with multiple antibody domains')
                 errors[name] = f'Found {len(results)} antibody domains: "{sequence}"'
             else:
-                aa_dict, chain_type, tail, species, v_gene, j_gene = results[0]
-                chains[name] = Chain(
+                found_chains = [Chain(
                     sequence=None,
                     aa_dict=aa_dict,
                     name=name,
@@ -220,8 +223,27 @@ class Chain:
                     species=species,
                     v_gene=v_gene,
                     j_gene=j_gene
-                )
+                ) for aa_dict, chain_type, tail, species, v_gene, j_gene in results]
+                chains[name] = found_chains if multiple_domains else found_chains[0]
         return chains, errors
+
+    @classmethod
+    def multiple_domains(cls, sequence: str, scheme: str, cdr_definition=None, name=None, assign_germline=False, allowed_species=None) -> 'Chain':
+        """Parse multi-domain sequence into a list of Chain objects
+
+        :param sequence: Unaligned string sequence
+        :param scheme: Numbering scheme to align the sequences
+        :param cdr_definition: Numbering scheme to be used for definition of CDR regions. Same as ``scheme`` by default.
+        :param name: Optional sequence identifier
+        :param assign_germline: Assign germline name using ANARCI based on best sequence identity
+        :param allowed_species: Allowed species for germline assignment. Use ``None`` to allow all species, or one or more of: ``'human', 'mouse','rat','rabbit','rhesus','pig','alpaca'``
+        :return: tuple with (dict of Chain objects, dict of error strings)
+        """
+        chains, errors = cls.batch({name: sequence}, scheme=scheme, cdr_definition=cdr_definition, assign_germline=assign_germline, allowed_species=allowed_species, multiple_domains=True)
+        if error := errors.get(name):
+            raise ChainParseError(error)
+        return chains[name]
+
 
     def __repr__(self):
         return self.format()
