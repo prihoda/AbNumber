@@ -730,7 +730,8 @@ class Chain:
             aa_dict=merged_dict,
             chain_type=self.chain_type,
             scheme='imgt',
-            tail=''
+            tail='',
+            name=f'{v_chain.name} {j_chain.name}'
         )
 
     @property
