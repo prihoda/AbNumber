@@ -25,3 +25,5 @@ jupyter-test: examples/AbNumber_getting_started.ipynb
 
 unit-test:
 	pytest test
+
+# To update Docs, log in to ReadTheDocs and run the build: https://readthedocs.org/projects/abnumber/
