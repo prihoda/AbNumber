@@ -51,7 +51,7 @@ def merge_anarci_csv(input_paths, output_path, scheme, add_regions=False):
                 f'Unexpected reordering of positions in CSV file: {sorted_position_numbers}'
 
             df = df.reindex(metadata_columns + sorted_position_numbers, axis=1)
-            df.loc[:, sorted_position_numbers].fillna('-', inplace=True)
+            df.fillna({c: '-' for c in sorted_position_numbers}, inplace=True)
             df.to_csv(f, index=False, header=False)
             num += len(df)
 
