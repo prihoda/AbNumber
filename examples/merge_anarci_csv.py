@@ -17,8 +17,8 @@ def merge_anarci_csv(input_paths, output_path, scheme):
             is_heavy_chain = df['chain_type'].iloc[0] == 'H'
         else:
             assert is_heavy_chain == (df['chain_type'].iloc[0] == 'H'), f'All files need to have the same chain type, inconsistent chain type in {path}'
-        start = '1' if '1' in df.columns else '2'
-        position_numbers.update(df.loc[:, start:].columns)
+        df_positions = df.loc[:, ('1' if '1' in df.columns else '2'):].columns.tolist()
+        position_numbers.update(df_positions)
         for c in df.columns:
             if c not in position_numbers and c not in metadata_columns:
                 metadata_columns.append(c)
@@ -31,6 +31,9 @@ def merge_anarci_csv(input_paths, output_path, scheme):
     with open(output_path, 'w') as f:
         for i, path in enumerate(input_paths):
             df = pandas.read_csv(path)
+            df_positions = df.loc[:, ('1' if '1' in df.columns else '2'):].columns.tolist()
+            assert df_positions == [c for c in sorted_position_numbers if c in df_positions], \
+                f'Unexpected reordering of positions in CSV file: {sorted_position_numbers}'
             df = df.reindex(metadata_columns + sorted_position_numbers, axis=1)
             df.loc[:, sorted_position_numbers].fillna('-', inplace=True)
             num += len(df)
