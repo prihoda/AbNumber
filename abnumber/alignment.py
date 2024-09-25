@@ -50,6 +50,11 @@ class Alignment:
     def __len__(self):
         return len(self.positions)
 
+    def __contains__(self, item):
+        position = self._parse_position(item)
+        assert position.scheme == self.scheme, f'Expected {self.scheme} scheme, got {position.scheme}'
+        return position in self.positions
+
     def __getitem__(self, item):
         if isinstance(item, slice):
             if item.step is not None and item.step != 1:

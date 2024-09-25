@@ -254,6 +254,28 @@ class Chain:
     def __iter__(self):
         yield from self.positions.items().__iter__()
 
+    def __contains__(self, item):
+        position = self._parse_position(item)
+        assert position.scheme == self.scheme
+        return position in self.positions
+
+    def __setitem__(self, item, value):
+        """Mutate single position by directly modifying this Chain object"""
+        assert isinstance(value, str), f'Expected amino acid string, got: {type(value)} {value}'
+        assert len(value) == 1, f'Expected amino acid string, got: "{value}"'
+        position = self._parse_position(item)
+        assert position.scheme == self.scheme, f'Expected {self.scheme} scheme, got {position.scheme}'
+        assert position.cdr_definition == self.cdr_definition, f'Expected {self.cdr_definition} CDR definition, got {position.cdr_definition}, please pass a Position object with correct CDR definition'
+        region_dict = self.regions[position.get_region()]
+        if position in region_dict:
+            # position is already present, this will replace it
+            region_dict[position] = value
+        else:
+            # make sure to keep the order of positions
+            region_dict[position] = value
+            for pos in sorted(region_dict):
+                region_dict.move_to_end(pos)
+
     def __getitem__(self, item):
         if isinstance(item, slice):
             if item.step is not None and item.step != 1:
@@ -611,7 +633,13 @@ class Chain:
 
         grafted_dict = {pos: aa for pos, aa in other if not pos.is_in_cdr()}
         for pos, aa in self:
-            if pos.is_in_cdr() or (backmutate_vernier and pos.is_in_vernier()) or pos in backmutations:
+            if aa == 'X':
+                # Do not preserve X placeholder positions, use the template instead
+                continue
+            if pos.is_in_cdr() \
+                    or (backmutate_vernier and pos.is_in_vernier()) \
+                    or pos in backmutations \
+                    or grafted_dict.get(pos) == 'X':
                 grafted_dict[pos] = aa
 
         return Chain(sequence=None, aa_dict=grafted_dict, name=name or self.name, chain_type=self.chain_type,
@@ -719,10 +747,14 @@ class Chain:
         v_chains, j_chains = self.find_human_germlines(limit=top+1, v_gene=v_gene, j_gene=j_gene)
         v_chain = v_chains[top]
         j_chain = j_chains[top]
+        return v_chain.merge(j_chain)
+
+    def merge(self, other: 'Chain') -> 'Chain':
+        """Merge with another chain to create a new Chain object, positions from this chain taking priority"""
 
         merged_dict = {
-            **{pos: aa for pos, aa in j_chain},
-            **{pos: aa for pos, aa in v_chain}
+            **{pos: aa for pos, aa in other},
+            **{pos: aa for pos, aa in self}
         }
 
         return Chain(
@@ -731,7 +763,7 @@ class Chain:
             chain_type=self.chain_type,
             scheme='imgt',
             tail='',
-            name=f'{v_chain.name} {j_chain.name}'
+            name=f'{self.name or ""} {other.name or ""}'.strip() or None
         )
 
     @property

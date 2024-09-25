@@ -299,3 +299,76 @@ def test_multiple_domains():
     assert chains[0].tail == 'GGGS'
     assert chains[1].seq == vl
     assert chains[1].tail == 'CCC'
+
+def test_nearest_graft_imgt():
+    vh = 'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTVTVSS'
+    #              IMGT CDRs       ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^
+    hu = 'QVQLVQSGAEVKKPGASVKVSCKASGYTFTRYTMHWVRQAPGQGLEWMGIINPSRGYTSYAQKFQGRVTMTRDTSTSTVYMELSSLRSEDTAVYYCARYYDDHYCLDYWGQGTTVTVSS'
+    chain = Chain(vh, 'imgt')
+    assert chain.graft_cdrs_onto_human_germline().seq == hu
+
+
+def test_nearest_graft_kabat():
+    vh = 'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTVTVSS'
+    #      °       KABAT CDRs       °°°°^^^^^           °°°^^^^^^^^^^^^^^^^^ ° ° ° °    °                 °°^^^^^^^^^^°
+    hu = 'QVQLVQSGAEVKKPGASVKVSCKASGYTFTRYTMHWVRQAPGQGLEWMGYINPSRGYTNYNQKFKDRVTMTRDTSTSTVYMELSSLRSEDTAVYYCARYYDDHYCLDYWGQGTTVTVSS'
+    chain = Chain(vh, 'kabat')
+    assert chain.graft_cdrs_onto_human_germline().seq == hu
+
+
+def test_imgt_minimal_framework_will_not_contain_x():
+    vh = 'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTVTVSS'
+    #              IMGT CDRs       ^^^^^^^^                 ^^^^^^^^                                      ^^^^^^^^^^^^
+    fw = 'EVQLLESGGGLVQPGGSLRLSCAXXXXXXXXXXXXXXRQAPGKGLEWVXXXXXXXXXXXXXDSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYXXXXXXXXXXXXXXXXXGTLVTVSS'
+    hu = 'EVQLLESGGGLVQPGGSLRLSCAASGYTFTRYTMHWVRQAPGKGLEWVGYINPSRGYTNYNDSVKGRFTISRDNSKNTLYLQMNSLRAEDTAVYYCARYYDDHYCLDYWGQGTLVTVSS'
+    #                            **************           *************                                 *****************
+    chain = Chain(vh, 'imgt')
+    other = Chain(fw, 'imgt')
+    assert chain.graft_cdrs_onto(other).seq == hu
+
+
+
+def test_nearest_graft_kabat_insertion_is_not_grafted():
+    vh = 'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMPQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTVTVSS'
+    hu = 'QVQLVQSGAEVKKPGASVKVSCKASGYTFTRYTMHWVRQAPGQGLEWMGYINPSRGYTNYNQKFKDRVTMTRDTSTSTVYMELSSLRSEDTAVYYCARYYDDHYCLDYWGQGTTVTVSS'
+    chain = Chain(vh, 'kabat')
+    assert chain.graft_cdrs_onto_human_germline().seq == hu
+
+
+def test_contains():
+    vh1 = 'QVQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMPQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTVTVSS'
+    chain1 = Chain(vh1, 'kabat')
+    assert '1' in chain1
+    vh2 = 'VQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMPQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTVTVSS'
+    chain2 = Chain(vh2, 'kabat')
+    assert '1' not in chain2
+    assert '1' in chain1.align(chain2)
+
+
+def test_setitem():
+    vh = 'VQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMPQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTVTVSS'
+    chain = Chain(vh, 'kabat')
+    assert chain.seq == vh
+    assert '1' not in chain
+    chain['1'] = 'X'
+    assert chain.seq == 'X' + vh
+    assert '1' in chain
+    chain['3'] = 'E'
+    assert chain.seq == 'XVELQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMPQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTVTVSS'
+
+
+def test_setitem_north():
+    vh = 'VQLQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMPQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTVTVSS'
+    chain = Chain(vh, 'aho', 'north')
+    assert chain.seq == vh
+    assert '1' not in chain
+    position = Position('H', 1, '', 'aho')
+    position.set_cdr_definition('north', 1)
+    chain[position] = 'X'
+    assert chain.seq == 'X' + vh
+    assert '1' in chain
+    position = Position('H', 3, '', 'aho')
+    position.set_cdr_definition('north', 3)
+    chain[position] = 'E'
+    assert chain.seq == 'XVELQQSGAELARPGASVKMSCKASGYTFTRYTMHWVKQRPGQGLEWIGYINPSRGYTNYNQKFKDKATLTTDKSSSTAYMPQLSSLTSEDSAVYYCARYYDDHYCLDYWGQGTTVTVSS'
+
