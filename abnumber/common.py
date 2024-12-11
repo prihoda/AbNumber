@@ -1,4 +1,5 @@
 import sys
+import warnings
 from typing import List, Tuple
 import re
 import numpy as np
@@ -42,6 +43,20 @@ def _anarci_align(sequences, scheme, allowed_species, assign_germline=False) -> 
             species = ali['species']
             v_gene = ali['germlines']['v_gene'][0][1] if assign_germline else None
             j_gene = ali['germlines']['j_gene'][0][1] if assign_germline else None
+
+            # Fix ANARCI bug returning same position number for consecutive positions, e.g. 82A, see test case in test_bugs.py
+            existing_positions = set()
+            for j, ((num, letter), aa) in enumerate(positions):
+                if aa == '-':
+                    continue
+                if (num, letter) in existing_positions:
+                    old_letter = letter
+                    while (num, letter) in existing_positions:
+                        letter = chr(ord(letter) + 1)
+                    positions[j] = ((num, letter), aa)
+                    # create UserWarning
+                    warnings.warn(f'ANARCI returned duplicate position number "{num}{old_letter}", using "{num}{letter}" in sequence "{sequence}"', UserWarning)
+                existing_positions.add((num, letter))
             aa_dict = {Position(chain_type=chain_type, number=num, letter=letter, scheme=scheme): aa
                        for (num, letter), aa in positions if aa != '-'}
             next_start = None if i == len(seq_numbered) - 1 else seq_numbered[i+1][1]
@@ -131,6 +146,12 @@ SCHEME_VERNIER = {
     #   'north_L': frozenset([2, 4, 35, 36, 46, 47, 48, 49, 64, 66, 68, 69, 71, 98]),
       'kabat_K': frozenset([2, 4, 35, 36, 46, 47, 48, 49, 64, 66, 68, 69, 71, 98]),
       'kabat_L': frozenset([2, 4, 35, 36, 46, 47, 48, 49, 64, 66, 68, 69, 71, 98]),
+}
+
+SCHEME_HALLMARK = {
+      'kabat_H': frozenset([37, 44, 45, 47]),
+      'kabat_K': frozenset([]),
+      'kabat_L': frozenset([]),
 }
 
 #'kabat_H': 31-35, 50-65, 95-102

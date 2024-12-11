@@ -545,7 +545,7 @@ class Chain:
 
         shared_pos = sorted(set(pos for pos_dict in pos_dicts for pos in pos_dict.keys()))
         residues = [tuple(pos_dict.get(pos, '-') for pos_dict in pos_dicts) for pos in shared_pos]
-        return Alignment(shared_pos, residues, chain_type=self.chain_type, scheme=self.scheme)
+        return Alignment(shared_pos, residues, chain_type=self.chain_type, scheme=self.scheme, names=[self.name] + [chain.name for chain in other])
 
     def clone(self, replace_seq: str = None):
         """Create a copy of this chain, optionally with a replacement sequence
@@ -613,11 +613,12 @@ class Chain:
             assign_germline=self.v_gene is not None
         )
 
-    def graft_cdrs_onto(self, other: 'Chain', backmutate_vernier=False, backmutations: List[Union['Position',str]] = [], name: str = None) -> 'Chain':
+    def graft_cdrs_onto(self, other: 'Chain', backmutate_vernier=False, backmutate_vhh_hallmark=False, backmutations: List[Union['Position',str]] = [], name: str = None) -> 'Chain':
         """Graft CDRs from this Chain onto another chain
 
         :param other: Chain to graft CDRs into (source of frameworks and tail sequence)
         :param backmutate_vernier: Also graft all Kabat Vernier positions from this chain (perform backmutations)
+        :param backmutate_vhh_hallmark: Also graft Kabat 37, 44, 45, and 47 from this chain (VHH Hallmark residues)
         :param backmutations: List of positions that should additionally be grafted from this chain (str or or :class:`Position`)
         :param name: Name of new Chain. If not provided, use name of this chain.
         :return: Chain with CDRs grafted from this chain and frameworks from the given chain
@@ -638,6 +639,7 @@ class Chain:
                 continue
             if pos.is_in_cdr() \
                     or (backmutate_vernier and pos.is_in_vernier()) \
+                    or (backmutate_vhh_hallmark and pos.is_vhh_hallmark()) \
                     or pos in backmutations \
                     or grafted_dict.get(pos) == 'X':
                 grafted_dict[pos] = aa
@@ -691,13 +693,14 @@ class Chain:
         """Get Position object at corresponding raw numeric position"""
         return list(self.positions.keys())[index]
 
-    def find_human_germlines(self, limit=10, v_gene=None, j_gene=None, unique=True) -> Tuple[List['Chain'], List['Chain']]:
+    def find_human_germlines(self, limit=10, v_gene=None, j_gene=None, unique=True, rank_by_frameworks=False) -> Tuple[List['Chain'], List['Chain']]:
         """Find most identical V and J germline sequences based on IMGT alignment
 
         :param limit: Number of best matching germlines to return
         :param v_gene: Filter germlines to specific V gene name
         :param j_gene: Filter germlines to specific J gene name
         :param unique: Skip germlines with duplicate amino acid sequence
+        :param rank_by_frameworks: Prioritize framework sequence identity when finding nearest matches
         :return: list of top V chains, list of top J chains
         """
         from abnumber.germlines import get_imgt_v_chains, get_imgt_j_chains
@@ -727,24 +730,25 @@ class Chain:
             j_chains = _get_unique_chains(j_chains)
 
         v_alignments = [chain.align(germline) for germline in v_chains]
-        v_ranks = np.array([-alignment.num_identical() - (alignment.num_similar() * 0.01) for alignment in v_alignments]).argsort(kind='stable')[:limit]
+        v_ranks = np.array([-alignment.num_identical(ignore_cdrs=rank_by_frameworks) - (alignment.num_similar() * 0.01) for alignment in v_alignments]).argsort(kind='stable')[:limit]
         top_v_chains = [v_chains[r] for r in v_ranks]
 
         j_alignments = [chain.align(germline) for germline in j_chains]
-        j_ranks = np.array([-alignment.num_identical() - (alignment.num_similar() * 0.01) for alignment in j_alignments]).argsort(kind='stable')[:limit]
+        j_ranks = np.array([-alignment.num_identical(ignore_cdrs=rank_by_frameworks) - (alignment.num_similar() * 0.01) for alignment in j_alignments]).argsort(kind='stable')[:limit]
         top_j_chains = [j_chains[r] for r in j_ranks]
 
         return top_v_chains, top_j_chains
 
-    def find_merged_human_germline(self, top=0, v_gene=None, j_gene=None) -> 'Chain':
+    def find_merged_human_germline(self, top=0, v_gene=None, j_gene=None, rank_by_frameworks=False) -> 'Chain':
         """Find n-th most identical V and J germline sequence based on IMGT alignment and merge them into one Chain
 
         :param top: Return top N most identical germline (0-indexed)
         :param v_gene: Filter germlines to specific V gene name
         :param j_gene: Filter germlines to specific J gene name
+        :param rank_by_frameworks: Prioritize framework sequence identity when finding nearest matches
         :return: merged germline sequence Chain object
         """
-        v_chains, j_chains = self.find_human_germlines(limit=top+1, v_gene=v_gene, j_gene=j_gene)
+        v_chains, j_chains = self.find_human_germlines(limit=top+1, v_gene=v_gene, j_gene=j_gene, rank_by_frameworks=rank_by_frameworks)
         v_chain = v_chains[top]
         j_chain = j_chains[top]
         return v_chain.merge(j_chain)

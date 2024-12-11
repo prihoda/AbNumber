@@ -1,7 +1,7 @@
 import copy
 from typing import List, Union
 
-from abnumber.common import _validate_chain_type, SCHEME_POSITION_TO_REGION, SCHEME_VERNIER, POS_REGEX
+from abnumber.common import _validate_chain_type, SCHEME_POSITION_TO_REGION, SCHEME_VERNIER, POS_REGEX, SCHEME_HALLMARK
 
 
 class Position:
@@ -122,6 +122,15 @@ class Position:
             return self.cdr_definition_position in SCHEME_VERNIER.get(f'{self.cdr_definition}_{self.chain_type}', [])
         else:
             raise NotImplementedError('Vernier zone identification is currently supported '
+                                      f'only with Kabat numbering or CDR definitions, got: {self.scheme}+{self.cdr_definition}')
+
+    def is_vhh_hallmark(self):
+        if self.scheme == 'kabat':
+            return self.number in SCHEME_HALLMARK.get(f'{self.scheme}_{self.chain_type}', [])
+        elif self.cdr_definition == 'kabat':
+            return self.cdr_definition_position in SCHEME_HALLMARK.get(f'{self.cdr_definition}_{self.chain_type}', [])
+        else:
+            raise NotImplementedError('Hallmark zone identification is currently supported '
                                       f'only with Kabat numbering or CDR definitions, got: {self.scheme}+{self.cdr_definition}')
 
     @classmethod

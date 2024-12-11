@@ -29,12 +29,15 @@ class Alignment:
     ...
 
     """
-    def __init__(self, positions, residues, scheme, chain_type):
+    def __init__(self, positions, residues, scheme, chain_type, names=None):
         assert isinstance(positions, list), 'Expected list of positions and residues. ' \
                                             'Use chain.align(other) to create an alignment.'
         assert len(positions) == len(residues)
         unique_cdr_definitions = set(pos.cdr_definition for pos in positions)
         assert len(unique_cdr_definitions) <= 1, f'Aligned chains should use the same CDR definitions, got: {unique_cdr_definitions}'
+        num_seqs = len(residues[0])
+        self.names = names if names is not None else ([None] * num_seqs)
+        assert len(self.names) == num_seqs, 'Number of names should match number of sequences'
         self.positions = positions
         self.residues = residues
         self.scheme = scheme
@@ -90,7 +93,7 @@ class Alignment:
             new_positions.append(pos)
             new_residues.append(residues)
 
-        return Alignment(positions=new_positions, residues=new_residues, scheme=self.scheme, chain_type=self.chain_type)
+        return Alignment(positions=new_positions, residues=new_residues, scheme=self.scheme, chain_type=self.chain_type, names=self.names)
 
     def _parse_position(self, position: Union[int, str, 'Position'], allow_raw=False):
         """Create :class:`Position` key object from string or int.
@@ -116,11 +119,12 @@ class Alignment:
             return None
         return self.positions[position]
 
-    def format(self, mark_identity=True, mark_cdrs=True):
+    def format(self, mark_identity=True, mark_cdrs=True, names=False):
         """Format alignment to string
 
         :param mark_identity: Add BLAST style middle line showing identity (``|``), similar residue (``+``) or different residue (``.``)
         :param mark_cdrs: Add line highlighting CDR regions using ``^``
+        :param names: Add chain.name to the beginning of each sequence
         :return: formatted string
         """
 
@@ -128,15 +132,17 @@ class Alignment:
             return '|' if a == b else ('+' if is_similar_residue(a, b) else '.')
 
         lines = []
+        longest_name = max(len(name or '') for name in self.names) if hasattr(self, 'names') and self.names else 0
         for i in range(len(self.residues[0])):
+            name = self.names[i] if hasattr(self, 'names') and self.names else None
             if mark_identity and i != 0:
-                lines.append(''.join(_identity_symbol(aas[i], aas[i-1]) for pos, aas in self))
-            lines.append(''.join(aas[i] for pos, aas in self))
+                lines.append((' '*(longest_name+1) if names else '') + ''.join(_identity_symbol(aas[i], aas[i-1]) for pos, aas in self))
+            lines.append(((name or '').rjust(longest_name) + ' ' if names else '') + ''.join(aas[i] for pos, aas in self))
         if mark_cdrs:
             if self.positions[0].cdr_definition == 'kabat':
-                lines.append(''.join('^' if pos.is_in_cdr() else ("°" if pos.is_in_vernier() else ' ') for pos in self.positions))
+                lines.append((' '*(longest_name+1) if names else '') + ''.join('^' if pos.is_in_cdr() else ("°" if pos.is_in_vernier() else ' ') for pos in self.positions))
             else:
-                lines.append(''.join('^' if pos.is_in_cdr() else ' ' for pos in self.positions))
+                lines.append((' '*(longest_name+1) if names else '') + ''.join('^' if pos.is_in_cdr() else ' ' for pos in self.positions))
         return '\n'.join(lines)
 
     def print(self, mark_identity=True, mark_cdrs=True):
@@ -164,8 +170,13 @@ class Alignment:
         """Get number of mutations (positions with more than one type of residue)"""
         return sum(len(set(aas)) != 1 for aas in self.residues)
 
-    def num_identical(self):
-        """Get number of positions with identical residues"""
+    def num_identical(self, ignore_cdrs = False):
+        """Get number of positions with identical residues
+
+        :param ignore_cdrs: Ignore CDR regions when counting identical residues
+        """
+        if ignore_cdrs:
+            return sum(len(set(aas)) == 1 for pos, aas in zip(self.positions, self.residues) if not pos.is_in_cdr())
         return sum(len(set(aas)) == 1 for aas in self.residues)
 
     def num_similar(self):
