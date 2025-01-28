@@ -88,7 +88,12 @@ class Position:
         raise NotImplementedError(f'Unknown chain type "{self.chain_type}"')
 
     def _sort_key(self):
-        letter_ord = ord(self.letter) if self.letter else 0
+        letter_ord = 0
+        remaining_letters = self.letter
+        while remaining_letters:
+            letter_ord *= 256
+            letter_ord += ord(remaining_letters[0])
+            remaining_letters = remaining_letters[1:]
         if self.scheme == 'imgt':
             if self.number in [33, 61, 112]:
                 # position 112 is sorted in reverse

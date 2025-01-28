@@ -212,18 +212,23 @@ class Chain:
                 warnings.warn('Use multiple_domains=True to allow parsing ScFvs and other sequences with multiple antibody domains')
                 errors[name] = f'Found {len(results)} antibody domains: "{sequence}"'
             else:
-                found_chains = [Chain(
-                    sequence=None,
-                    aa_dict=aa_dict,
-                    name=name,
-                    scheme=scheme,
-                    chain_type=chain_type,
-                    cdr_definition=cdr_definition,
-                    tail=tail,
-                    species=species,
-                    v_gene=v_gene,
-                    j_gene=j_gene
-                ) for aa_dict, chain_type, tail, species, v_gene, j_gene in results]
+                found_chains = []
+                for aa_dict, chain_type, tail, species, v_gene, j_gene in results:
+                    try:
+                        found_chains.append(Chain(
+                            sequence=None,
+                            aa_dict=aa_dict,
+                            name=name,
+                            scheme=scheme,
+                            chain_type=chain_type,
+                            cdr_definition=cdr_definition,
+                            tail=tail,
+                            species=species,
+                            v_gene=v_gene,
+                            j_gene=j_gene
+                        ))
+                    except Exception as e:
+                        errors[name] = f'Unexpected error creating Chain: {e}'
                 chains[name] = found_chains if multiple_domains else found_chains[0]
         return chains, errors
 
