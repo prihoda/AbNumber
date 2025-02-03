@@ -94,8 +94,8 @@ def is_integer(object):
     return isinstance(object, int) or isinstance(object, np.integer)
 
 
-SUPPORTED_SCHEMES = ['imgt', 'aho', 'chothia', 'kabat']
-SUPPORTED_CDR_DEFINITIONS = ['imgt', 'chothia', 'kabat', 'north']
+SUPPORTED_SCHEMES = ['imgt', 'aho', 'chothia', 'kabat','wolfguy']
+SUPPORTED_CDR_DEFINITIONS = ['imgt', 'chothia', 'kabat', 'north','wolfguy']
 
 SCHEME_BORDERS = {
                # Start coordinates
@@ -110,12 +110,20 @@ SCHEME_BORDERS = {
       'north_H': [23,  36,  50,   59,  93,   103, 114],
       'north_K': [24,  35,  49,   57,  89,    98, 108],
       'north_L': [24,  35,  49,   57,  89,    98, 108],
+    'wolfguy_H': [151, 201,  251, 301,  351, 401, 500],
+    'wolfguy_L': [551, 601,  651, 701,  751, 801, 900],
+    'wolfguy_K': [551, 601,  651, 701,  751, 801, 900]
 }
 
+STARTING_POSITIONS={
+    'wolfguy_H': 101,
+    'wolfguy_L':501,
+    'wolfguy_K':501
+}
 # { scheme -> { region -> list of position numbers } }
 SCHEME_REGIONS = {
     scheme: {
-        'FR1': list(range(1, borders[0])),
+        'FR1': list(range(STARTING_POSITIONS.get(scheme,1), borders[0])),
         'CDR1': list(range(borders[0], borders[1])),
         'FR2': list(range(borders[1], borders[2])),
         'CDR2': list(range(borders[2], borders[3])),

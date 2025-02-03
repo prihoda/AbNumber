@@ -98,7 +98,7 @@ class Position:
             if self.number in [33, 61, 112]:
                 # position 112 is sorted in reverse
                 letter_ord = -letter_ord
-        elif self.scheme in ['chothia', 'kabat', 'aho']:
+        elif self.scheme in ['chothia', 'kabat', 'aho','wolfguy']:
             # all letters are sorted alphabetically for these schemes
             pass
         else:
