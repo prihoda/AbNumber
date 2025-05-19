@@ -62,9 +62,11 @@ class Chain:
     :param tail: (Internal use only) Constant region sequence
     :param species: (Internal use only) Species as identified by ANARCI
     :param germline: (Internal use only) Germline as identified by ANARCI
+    :param use_anarcii: Use ANARCII (2.0) for numbering, otherwise use ANARCI (1.0)
+    :param anarcii_args: Keyword arguments for Anarcii()
     """
 
-    def __init__(self, sequence, scheme, cdr_definition=None, name=None, assign_germline=False, allowed_species=None, **kwargs):
+    def __init__(self, sequence, scheme, cdr_definition=None, name=None, assign_germline=False, allowed_species=None, use_anarcii=False, anarcii_args=None, **kwargs):
         aa_dict = kwargs.pop('aa_dict', None)
         chain_type = kwargs.pop('chain_type', None)
         tail = kwargs.pop('tail', None)
@@ -96,7 +98,14 @@ class Chain:
                 raise ChainParseError('Do not use tail= when providing sequence=, it will be inferred automatically')
             if isinstance(sequence, Seq):
                 sequence = str(sequence)
-            results = _anarci_align([sequence], scheme=scheme, allowed_species=allowed_species, assign_germline=assign_germline)[0]
+            results = _anarci_align(
+                [sequence],
+                scheme=scheme,
+                allowed_species=allowed_species,
+                assign_germline=assign_germline,
+                use_anarcii=use_anarcii,
+                anarcii_args=anarcii_args,
+            )[0]
             if not results:
                 raise ChainParseError(f'Variable chain sequence not recognized: "{sequence}"')
             if len(results) > 1:
@@ -134,9 +143,9 @@ class Chain:
         self.cdr3_dict = OrderedDict()
         self.fr4_dict = OrderedDict()
 
-        self._init_from_dict(aa_dict, allowed_species=allowed_species)
+        self._init_from_dict(aa_dict, allowed_species=allowed_species, use_anarcii=use_anarcii)
 
-    def _init_from_dict(self, aa_dict, allowed_species):
+    def _init_from_dict(self, aa_dict, allowed_species, use_anarcii=False):
         if self.scheme not in SUPPORTED_SCHEMES:
             raise NotImplementedError(f'Scheme "{self.scheme}" is not supported. Available schemes: {", ".join(SUPPORTED_SCHEMES)}')
         if self.cdr_definition in ['aho']:
@@ -165,7 +174,8 @@ class Chain:
             renumbered_aa_dict = _anarci_align(
                 [seq],
                 scheme=self.cdr_definition if self.cdr_definition != 'north' else 'chothia',
-                allowed_species=allowed_species
+                allowed_species=allowed_species,
+                use_anarcii=use_anarcii
             )[0][0][0]
             cdr_definition_positions = [pos.number for pos in sorted(renumbered_aa_dict.keys())]
             combined_aa_dict = {}
@@ -185,7 +195,7 @@ class Chain:
             regions_list[region_idx][pos] = aa
 
     @classmethod
-    def batch(cls, seq_dict: dict, scheme: str, cdr_definition=None, assign_germline=False, allowed_species=None, multiple_domains=False):
+    def batch(cls, seq_dict: dict, scheme: str, cdr_definition=None, assign_germline=False, allowed_species=None, multiple_domains=False, use_anarcii=False, anarcii_args=None):
         """Create multiple Chain objects from dict of sequences
 
         :param seq_dict: Dictionary of sequence strings, keys are sequence identifiers
@@ -193,7 +203,9 @@ class Chain:
         :param cdr_definition: Numbering scheme to be used for definition of CDR regions. Same as ``scheme`` by default.
         :param assign_germline: Assign germline name using ANARCI based on best sequence identity
         :param allowed_species: Allowed species for germline assignment. Use ``None`` to allow all species, or one or more of: ``'human', 'mouse','rat','rabbit','rhesus','pig','alpaca'``
-        :param multiple_domains: Allow parsing multiple domains in a sequence - return dict name -> list of one or more Chain items
+        :param multiple_domains: Allow parsing multiple domains in a sequence - return dict name -> list of one or more Chain items - will use ANARCI 1.0!
+        :param use_anarcii: Use ANARCII (2.0) for numbering, otherwise use ANARCI (1.0)
+        :param anarcii_args: Keyword arguments for Anarcii()
         :return: tuple with (dict of Chain objects, dict of error strings)
         """
         assert isinstance(seq_dict, dict), f'Expected dictionary of sequences, got: {type(seq_dict).__name__}'
@@ -201,7 +213,14 @@ class Chain:
             return {}, {}
         names = list(seq_dict.keys())
         seq_list = list(seq_dict.values())
-        all_results = _anarci_align(seq_list, scheme=scheme, allowed_species=allowed_species, assign_germline=assign_germline)
+        all_results = _anarci_align(
+            seq_list,
+            scheme=scheme,
+            allowed_species=allowed_species,
+            assign_germline=assign_germline,
+            use_anarcii=use_anarcii,
+            anarcii_args=anarcii_args,
+        )
         names = names or ([None] * len(seq_list))
         chains = {}
         errors = {}
@@ -233,7 +252,7 @@ class Chain:
         return chains, errors
 
     @classmethod
-    def multiple_domains(cls, sequence: str, scheme: str, cdr_definition=None, name=None, assign_germline=False, allowed_species=None) -> 'Chain':
+    def multiple_domains(cls, sequence: str, scheme: str, cdr_definition=None, name=None, assign_germline=False, allowed_species=None, use_anarcii=False) -> 'Chain':
         """Parse multi-domain sequence into a list of Chain objects
 
         :param sequence: Unaligned string sequence
@@ -242,9 +261,10 @@ class Chain:
         :param name: Optional sequence identifier
         :param assign_germline: Assign germline name using ANARCI based on best sequence identity
         :param allowed_species: Allowed species for germline assignment. Use ``None`` to allow all species, or one or more of: ``'human', 'mouse','rat','rabbit','rhesus','pig','alpaca'``
+        :param use_anarcii: Use ANARCII (2.0) for numbering, otherwise use ANARCI (1.0)
         :return: tuple with (dict of Chain objects, dict of error strings)
         """
-        chains, errors = cls.batch({name: sequence}, scheme=scheme, cdr_definition=cdr_definition, assign_germline=assign_germline, allowed_species=allowed_species, multiple_domains=True)
+        chains, errors = cls.batch({name: sequence}, scheme=scheme, cdr_definition=cdr_definition, assign_germline=assign_germline, allowed_species=allowed_species, multiple_domains=True, use_anarcii=use_anarcii)
         if error := errors.get(name):
             raise ChainParseError(error)
         return chains[name]
@@ -601,12 +621,14 @@ class Chain:
             j_gene=self.j_gene
         )
 
-    def renumber(self, scheme=None, cdr_definition=None, allowed_species=None):
+    def renumber(self, scheme=None, cdr_definition=None, allowed_species=None, use_anarcii=False, anarcii_args=None):
         """Return copy of this chain aligned using a different numbering scheme or CDR definition
 
         :param scheme: Change numbering scheme: One of ``imgt``, ``chothia``, ``kabat``, ``aho``.
         :param cdr_definition: Change CDR definition scheme: One of ``imgt``, ``chothia``, ``kabat``, ``north``.
         :param allowed_species: ``None`` to allow all species, or one or more of: ``'human', 'mouse','rat','rabbit','rhesus','pig','alpaca'``
+        :param use_anarcii: Use ANARCII (2.0) for numbering, otherwise use ANARCI (1.0)
+        :param anarcii_args: Keyword arguments for Anarcii()
         """
 
         return Chain(
@@ -615,7 +637,9 @@ class Chain:
             allowed_species=allowed_species,
             scheme=scheme or self.scheme,
             cdr_definition=cdr_definition or scheme or self.cdr_definition,
-            assign_germline=self.v_gene is not None
+            assign_germline=self.v_gene is not None,
+            use_anarcii=use_anarcii,
+            anarcii_args=anarcii_args,
         )
 
     def graft_cdrs_onto(self, other: 'Chain', backmutate_vernier=False, backmutate_vhh_hallmark=False, backmutations: List[Union['Position',str]] = [], name: str = None) -> 'Chain':

@@ -4,13 +4,7 @@ from typing import List, Tuple
 import re
 import numpy as np
 from abnumber.exceptions import ChainParseError
-try:
-    from anarci.anarci import anarci
-except ImportError:
-    # Only print the error without failing - required to import
-    print('ANARCI module not available. Please install it separately or install AbNumber through Bioconda')
-    print('See: https://abnumber.readthedocs.io/')
-    sys.exit(1)
+import warnings
 
 POS_REGEX = re.compile(r'([HL]?)(\d+)([A-Z]?)')
 WHITESPACE = re.compile(r'\s+')
@@ -21,15 +15,29 @@ def _validate_chain_type(chain_type):
         f'Invalid chain type "{chain_type}", it should be "H" (heavy),  "L" (lambda light chian) or "K" (kappa light chain)'
 
 
-def _anarci_align(sequences, scheme, allowed_species, assign_germline=False) -> List[List[Tuple]]:
+def _anarci_align(sequences, scheme, allowed_species, assign_germline=False, use_anarcii=False, anarcii_args: dict=None) -> List[List[Tuple]]:
     from abnumber.position import Position
     assert isinstance(sequences, list), f'Expected list of sequences, got: {type(sequences)}'
-    all_numbered, all_ali, all_hits = anarci(
-        [(f'id{i}', re.sub(WHITESPACE, '', sequence)) for i, sequence in enumerate(sequences)],
-        scheme=scheme,
-        allowed_species=allowed_species,
-        assign_germline=assign_germline
-    )
+    if not use_anarcii or assign_germline:
+        if use_anarcii and assign_germline:
+            warnings.warn('Germline assignment is not supported in ANARCII (2.0), using ANARCI (1.0)', UserWarning)
+        from anarci.anarci import anarci
+        all_numbered, all_ali, all_hits = anarci(
+            [(f'id{i}', re.sub(WHITESPACE, '', sequence)) for i, sequence in enumerate(sequences)],
+            scheme=scheme,
+            allowed_species=allowed_species,
+            assign_germline=assign_germline
+        )
+    else:
+        from anarcii import Anarcii
+        try:
+            model = Anarcii(**(anarcii_args or {}))
+            model.number(sequences)
+            model.to_scheme(scheme)
+            all_numbered, all_ali, all_hits = model.to_legacy()
+        except Exception as e:
+            raise ChainParseError(f'Unexpected error running ANARCII: {e}') from e
+
     all_results = []
     for sequence, seq_numbered, seq_ali in zip(sequences, all_numbered, all_ali):
         if seq_numbered is None:
@@ -40,7 +48,7 @@ def _anarci_align(sequences, scheme, allowed_species, assign_germline=False) -> 
         results = []
         for i, ((positions, start, end), ali) in enumerate(zip(seq_numbered, seq_ali)):
             chain_type = ali['chain_type']
-            species = ali['species']
+            species = ali.get('species')
             v_gene = ali['germlines']['v_gene'][0][1] if assign_germline else None
             j_gene = ali['germlines']['j_gene'][0][1] if assign_germline else None
 

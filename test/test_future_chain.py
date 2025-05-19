@@ -1,5 +1,5 @@
 import pytest
-from abnumber import Chain, ChainParseError, Position
+from abnumber.future import Chain, ChainParseError, Position
 import numpy as np
 
 def test_light_chain_from_str():
